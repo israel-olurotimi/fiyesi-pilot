@@ -1900,6 +1900,59 @@ textarea.text-field{resize:vertical;min-height:84px;font:inherit}
 .me-done{width:auto;min-height:44px;padding:0 16px}
 .me-now-text b{font-size:16px}
 .me-acts{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 12px 12px}
+/* Decision 147 (owner's iPhone test): Save never sits on top of a field. The bar follows the fields; only the task
+   screens dock it, and never while the keyboard is open (then it follows the fields too). */
+.kb-bar,.kb-bar.in-scroll{position:static}
+html:not(.kb-open) .task-mode .kb-bar.in-scroll{position:sticky;bottom:0}
+/* The locked wordmark where people meet the brand (decision 147): splash, setup, Profile and About, the wide rail.
+   Home on a phone stays the shop's own (decision 2: no "Fiyesi" at the dashboard top). Colour follows the text. */
+.setup-brand{display:flex;justify-content:flex-start;padding:2px 0 8px}
+.setup-mark{height:22px;width:auto;color:var(--f-palette-kola)}
+.brand-foot{display:flex;flex-direction:column;align-items:center;gap:6px;margin:28px 0 12px;color:var(--f-palette-kola)}
+.brand-foot.about{margin:8px 0 18px}
+.brand-mark{height:34px;width:auto}
+.brand-foot small{font-size:13px;color:var(--f-semantic-textMuted)}
+.rail-mark{display:none}
+.splash-mark{position:fixed;top:max(18px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:2;color:var(--f-palette-kola);transition:opacity var(--f-motion-sheetExit) var(--f-ease-out)}
+.splash-mark svg{height:34px;width:auto;display:block}
+.splash-glide .splash-mark,.splash-out .splash-mark{opacity:0}
+@media (min-width:1000px),(min-width:800px) and (orientation:landscape){
+ .owner-screen:not(.till-mode)>.owner-bottom-nav .rail-mark{display:flex;justify-content:center;padding:0 0 14px;color:var(--f-palette-kola);order:-9}
+ .rail-mark svg{width:64px;height:auto}
+}
+/* Profile picture: the corner button changes your picture (opens the faces). The role shows in the "Shop owner" chip. */
+.prof-face{position:relative;display:inline-flex;flex:none}
+.prof-edit{position:absolute;right:-4px;bottom:-4px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--f-semantic-background);background:var(--f-semantic-action);color:var(--f-palette-cream);padding:0;cursor:pointer}
+.prof-edit::after{content:"";position:absolute;inset:-6px}
+/* Language (decision 148): one globe button at the top of the sign-in screens and a row in Profile open one sheet. */
+.g-top-r{display:flex;align-items:center;gap:8px}
+.lang-btn{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border-radius:var(--f-radius-full);border:1.5px solid var(--f-semantic-border);background:var(--f-semantic-surface);color:var(--f-semantic-text);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.lang-btn::after{content:"";position:absolute;inset:-6px}
+.lang-btn{position:relative}
+.ls-sheet .ls-search{min-height:48px;margin:4px 0 10px}
+.ls-group{margin:4px 2px 6px;font-size:13px;font-weight:800;color:var(--f-semantic-textMuted)}
+.ls-list{display:grid;gap:6px;max-height:50vh;overflow:auto}
+.ls-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:56px;padding:8px 14px;border:1.5px solid var(--f-semantic-border);border-radius:var(--f-radius-md);background:var(--f-semantic-surface);color:var(--f-semantic-text);font:inherit;text-align:left;cursor:pointer}
+.ls-row[aria-checked="true"]{border-color:var(--f-semantic-action);box-shadow:inset 0 0 0 1px var(--f-semantic-action)}
+.ls-row span{display:grid;gap:2px}.ls-row b{font-size:17px}.ls-row small{font-size:13px;color:var(--f-semantic-textMuted)}
+.ls-row[hidden]{display:none}
+.ls-tick{width:22px;height:22px;border-radius:50%;background:var(--f-semantic-action);flex:none;position:relative}
+.ls-tick::after{content:"";position:absolute;left:7px;top:4px;width:6px;height:11px;border:solid var(--f-palette-cream);border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.me-photo{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;cursor:pointer;position:relative}
+.me-file{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.me-photo-note{margin:-6px 2px 0;font-size:13px}
+.dm.av.photo>img{object-fit:cover}
+/* Put Fiyesi on this phone (decision 149): a quiet card on Home, a row in Profile, one sheet with the steps. */
+.inst-card{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 12px;align-items:center;margin:14px 0 4px;padding:12px 14px;border-radius:var(--f-radius-lg);background:var(--f-semantic-surface);border:1.5px dashed var(--f-semantic-border)}
+.inst-ico{display:grid;place-items:center;width:40px;height:40px}
+.inst-ico.big{width:60px;height:60px;margin:0 auto 6px}
+.inst-text{display:grid;gap:2px}.inst-text b{font-size:15px}.inst-text small{font-size:13px;color:var(--f-semantic-textMuted)}
+.inst-acts{grid-column:1/-1;display:flex;align-items:center;gap:14px}
+.inst-yes{min-height:40px;padding:0 18px;border:0;border-radius:var(--f-radius-full);background:var(--f-semantic-action);color:var(--f-palette-cream);font:inherit;font-weight:800;cursor:pointer}
+.inst-sheet{text-align:left}.inst-sheet h2{text-align:center}
+.inst-points{margin:4px 0 12px;padding-left:20px;display:grid;gap:4px;color:var(--f-semantic-textMuted)}
+.inst-steps{margin:0 0 12px;padding-left:22px;display:grid;gap:8px;font-weight:600}
+.inst-steps svg{vertical-align:-3px}
 
 /* Prototype shell only: role switcher above the real staging UI. Not part of the product UI. */
 :root{color-scheme:light}
@@ -2289,150 +2342,6 @@ function groupInput(el){
 
 __exports.groupNaira=groupNaira;__exports.groupInput=groupInput;
 });
-__d("/home/claude/fiyesi/app/staging/connection.mjs",function(__exports,__r){
-// Connection states (decision 114): connected, slow and offline. Pure, so it is tested without a network.
-// Slow means online but records are not getting through: one has waited over 20 seconds, or the phone reports 2G.
-const SLOW_AFTER_MS=20000;
-const SLOW_TYPES=['slow-2g','2g'];
-const DONE=['synced','discarded locally','needs review','rejected'];
-function connection({online=true,queue=[],effectiveType='',now=Date.now()}={}){
- const waiting=queue.filter(r=>!DONE.includes(r.status));
- if(online===false)return {mode:'offline',waiting:waiting.length};
- const stuck=waiting.some(r=>now-Date.parse(r.occurredAt||0)>SLOW_AFTER_MS);
- return {mode:SLOW_TYPES.includes(effectiveType)||stuck?'slow':'online',waiting:waiting.length};
-}
-// The moment to say "Back online": only when coming out of offline.
-const backOnline=(before,after)=>before==='offline'&&after!=='offline';
-
-__exports.connection=connection;__exports.SLOW_AFTER_MS=SLOW_AFTER_MS;__exports.backOnline=backOnline;
-});
-__d("/home/claude/fiyesi/app/staging/accounts.mjs",function(__exports,__r){
-// A shop can list several accounts for transfers. The first is Main: receipts and reminders use it, and it is the first card customers see.
-const MAX_ACCOUNTS=5;
-const listAccounts=s=>Array.isArray(s?.accounts)?s.accounts:(s?.account&&s.account.number?[s.account]:[]);
-const mainOf=list=>list&&list.length?list[0]:null;
-// `acct` is already checked (10 digits, a bank). Returns {ok,accounts} or {ok:false,error:<catalog key>}.
-function addAccount(list,acct){
- if(!acct||!acct.number||!acct.bank)return {ok:false,error:'accounts.incomplete'};
- if(list.length>=MAX_ACCOUNTS)return {ok:false,error:'accounts.max'};
- if(list.some(a=>a.number===acct.number))return {ok:false,error:'accounts.dup'};
- return {ok:true,accounts:[...list,{bank:acct.bank,number:acct.number,name:acct.name||''}]};
-}
-const makeMain=(list,number)=>{const a=list.find(x=>x.number===number);return a?[a,...list.filter(x=>x!==a)]:list;};
-const removeAccount=(list,number)=>list.filter(a=>a.number!==number);
-
-__exports.addAccount=addAccount;__exports.MAX_ACCOUNTS=MAX_ACCOUNTS;__exports.listAccounts=listAccounts;__exports.mainOf=mainOf;__exports.makeMain=makeMain;__exports.removeAccount=removeAccount;
-});
-__d("/home/claude/fiyesi/app/staging/pricing.mjs",function(__exports,__r){
-// Packs and wholesale. Stock is always counted in the base unit (piece, bottle, kg).
-// A pack is another way to sell the same stock; wholesale is a price for buying many loose units.
-const PACK_KEY=':pack';
-const baseQty=l=>l.quantity*(l.perUnit||1);
-const lineKey=l=>l.productId+((l.perUnit||1)>1?PACK_KEY:'');
-const hasPack=p=>Boolean(p?.pack&&p.pack.size>=2&&p.pack.priceKobo>0);
-const hasWholesale=p=>Boolean(p?.wholesale&&p.wholesale.minQty>=2&&p.wholesale.priceKobo>0);
-// Price of one loose unit when `units` loose units of this product are bought together.
-const unitPrice=(p,units)=>hasWholesale(p)&&units>=p.wholesale.minQty?p.wholesale.priceKobo:p.sellingPriceKobo;
-const packName=p=>hasPack(p)?p.pack.unit:'';
-// cart keys: productId = loose units, productId + ':pack' = packs.
-function cartLinesFor(products,cart){
- const out=[];
- for(const p of products||[]){
-  const u=cart?.[p.id]||0,k=hasPack(p)?(cart?.[p.id+PACK_KEY]||0):0;
-  if(u>0){const price=unitPrice(p,u);out.push({productId:p.id,key:p.id,name:p.name,unit:p.unit,quantity:u,perUnit:1,sellingPriceKobo:price,tier:price<p.sellingPriceKobo?'wholesale':'retail',baseQty:u});}
-  if(k>0)out.push({productId:p.id,key:p.id+PACK_KEY,name:`${p.name} (${p.pack.unit})`,unit:p.pack.unit,quantity:k,perUnit:p.pack.size,sellingPriceKobo:p.pack.priceKobo,tier:'pack',baseQty:k*p.pack.size});
- }
- return out;
-}
-// Total for items as they are saved ({productId, quantity, pack?}). Same rules as the lines on the receipt.
-function itemsTotalKobo(products,items){
- const cart={};
- for(const i of items||[]){const k=i.productId+(i.pack?PACK_KEY:'');cart[k]=(cart[k]||0)+i.quantity;}
- return cartLinesFor(products,cart).reduce((n,l)=>n+l.quantity*l.sellingPriceKobo,0);
-}
-// Can this pack and wholesale setup be saved? Returns an error sentence or ''.
-function checkPricing({sellingPriceKobo,pack,wholesale}){
- if(pack){
-  if(!Number.isSafeInteger(pack.size)||pack.size<2||pack.size>10000)return 'A pack holds 2 or more units.';
-  if(!pack.unit)return 'Choose what the pack is called.';
-  if(!Number.isSafeInteger(pack.priceKobo)||pack.priceKobo<=0)return 'Give the pack a price.';
-  if(pack.priceKobo>=pack.size*sellingPriceKobo)return `A pack should cost less than ${pack.size} loose units, or nobody will buy it.`;
- }
- if(wholesale){
-  if(!Number.isSafeInteger(wholesale.minQty)||wholesale.minQty<2||wholesale.minQty>100000)return 'Wholesale starts from 2 or more units.';
-  if(!Number.isSafeInteger(wholesale.priceKobo)||wholesale.priceKobo<=0)return 'Give the wholesale price.';
-  if(wholesale.priceKobo>=sellingPriceKobo)return 'The wholesale price should be lower than the normal price.';
- }
- return '';
-}
-// "85 pieces = 2 cartons and 5 loose" for the product page.
-function stockPhrase(p){
- const n=p.stockOnHand;if(n===null||n===undefined)return '';
- if(!hasPack(p))return `${n} ${p.unit}`;
- const k=Math.floor(n/p.pack.size),r=n-k*p.pack.size;
- return `${n} ${p.unit} · ${k} ${p.pack.unit}${k===1?'':'s'}${r?` and ${r} loose`:''}`;
-}
-// What a pack really earns: its price minus what the loose units cost you.
-const packProfit=p=>hasPack(p)&&p.buyingCostKobo!==null&&p.buyingCostKobo!==undefined?p.pack.priceKobo-p.pack.size*p.buyingCostKobo:null;
-
-// Each-price inside a pack, in whole naira. When the pack does not divide evenly, it says about.
-const eachLabel=(packKobo,size,money)=>{const v=packKobo/size,w=Math.round(v/100)*100;return (Math.abs(v-w)<1?'':'about ')+money(w);};
-
-__exports.cartLinesFor=cartLinesFor;__exports.itemsTotalKobo=itemsTotalKobo;__exports.checkPricing=checkPricing;__exports.stockPhrase=stockPhrase;__exports.PACK_KEY=PACK_KEY;__exports.baseQty=baseQty;__exports.lineKey=lineKey;__exports.hasPack=hasPack;__exports.hasWholesale=hasWholesale;__exports.unitPrice=unitPrice;__exports.packName=packName;__exports.packProfit=packProfit;__exports.eachLabel=eachLabel;
-});
-__d("/home/claude/fiyesi/app/staging/marks.mjs",function(__exports,__r){
-// Drawn marks, style v2 (decision 136). The study page is design/icons/; this file is the source. Same tier as the tab icons: 32 x 32, a kola line,
-// v2 colours by class (p paprika, y yellow, l leaf, w cream, pp paper, t sack), a hard kola offset shadow on the right
-// when shown in colour, and the same drawing in paper with a muted line when quiet. For things that carry meaning:
-// the four ways to pay and the optional modules. Controls (back, close, search, arrows) stay plain line icons.
-const MARKS={
- // Ways to pay. The state (paid, waiting, owing) is still shown by the chip's words and shape, never by the mark.
- cash:'<rect x="3.5" y="9" width="20" height="12" rx="1" class="l" transform="rotate(-9 13.5 15)"/><rect x="8" y="12.5" width="20.5" height="12.5" rx="1" class="l"/><circle cx="18.2" cy="18.7" r="3.2" class="w"/><path d="M11.5 15.5v6.4M25 15.5v6.4" class="wk"/>',
- transfer:'<rect x="4.5" y="4.5" width="13" height="23" rx="2.5" class="pp"/><rect x="7" y="8" width="8" height="13" class="y" stroke="none"/><circle cx="11" cy="24.3" r="1.1" class="p" stroke="none"/><path d="M11.5 12.2h9.5V8.6l7 6.4-7 6.4v-3.6h-9.5z" class="p"/>',
- pos:'<rect x="11" y="2.5" width="10" height="6" rx=".8" class="p"/><rect x="7.5" y="6" width="17" height="22.5" rx="2.5" class="y"/><rect x="10.5" y="9" width="11" height="6" rx=".6" class="l"/><path d="M12 19h.6M16 19h.6M20 19h.6M12 22.8h.6M16 22.8h.6M20 22.8h.6" stroke-width="2.4"/>',
- // Split: one sale paid more than one way (a note and a phone together, with a plus).
- split:'<rect x="2.5" y="9" width="16" height="10.5" rx="1" class="l" transform="rotate(-9 10.5 14.2)"/><circle cx="10.4" cy="14.3" r="2.3" class="w"/><rect x="15.5" y="8.5" width="12" height="19.5" rx="2.3" class="pp"/><rect x="17.6" y="11.5" width="7.8" height="10" class="y" stroke="none"/><circle cx="9" cy="24.3" r="4.8" class="p"/><path d="M9 21.8v5M6.5 24.3h5" class="wk" stroke-width="2"/>',
- owing:'<rect x="5" y="4" width="17" height="24" rx="1.5" class="p"/><path d="M9 4v24"/><rect x="11.5" y="8.5" width="7.5" height="5" rx=".5" class="w"/><path d="M20.5 27.5 26 12.5l3 1.1-5.5 15-3.2 1.6z" class="y"/><path d="M25.4 14.2l2.9 1"/>',
- // Settings rows (decision 136 extended): the things people recognise in Profile, Team and the shop's settings.
- team:'<rect x="8" y="5" width="16" height="23" rx="2.2" class="y"/><path d="M13 5V3h6v2"/><circle cx="16" cy="13" r="3.4" class="sk"/><path d="M10.5 22.5c.7-3.2 3-4.8 5.5-4.8s4.8 1.6 5.5 4.8z" class="l"/>',
- plan:'<path d="M4 15.5 15.5 4H27v11.5L15.5 27z" class="p"/><circle cx="21.5" cy="9.5" r="2.2" class="w"/>',
- signboard:'<rect x="3.5" y="5" width="25" height="13" rx="1" class="w"/><path d="M8 18v10M24 18v10M3.5 28h25"/><path d="M8 10h11M8 13.5h7"/><circle cx="23.5" cy="11.5" r="1.8" class="p" stroke="none"/>',
- activity:'<rect x="4.5" y="4" width="17" height="24" rx="1.5" class="pp"/><path d="M8.5 10h9M8.5 14h9M8.5 18h5"/><circle cx="22.5" cy="21.5" r="6" class="y"/><path d="M22.5 18.5v3.2l2.2 1.4"/>',
- sounds:'<path d="M3.5 12h5l7-6v20l-7-6h-5z" class="y"/><path d="M20 11.5a6 6 0 0 1 0 9M23.5 8a10.5 10.5 0 0 1 0 16"/>',
- phone:'<rect x="9" y="3.5" width="14" height="25" rx="2.5" class="pp"/><rect x="11.5" y="7" width="9" height="15" class="l" stroke="none"/><circle cx="16" cy="25" r="1.1" class="p" stroke="none"/><path d="M4.5 11v10M27.5 11v10" class="pk" stroke-width="2.2"/>',
- stamp:'<rect x="12.5" y="3.5" width="7" height="9" rx="2" class="y"/><path d="M8 12.5h16v6H8z" class="p"/><path d="M5 23h22v4.5H5z" class="pp"/>',
- receipt:'<path d="M7 4h18v24l-3-2-3 2-3-2-3 2-3-2-3 2z" class="pp"/><path d="M11 10h10M11 14h10"/><circle cx="16" cy="20.5" r="3.4" class="p"/>',
- lock:'<path d="M10.5 14v-4a5.5 5.5 0 0 1 11 0v4"/><rect x="7" y="14" width="18" height="14" rx="2" class="y"/><circle cx="16" cy="20" r="2" class="w"/><path d="M16 22v2.5"/>',
- shield:'<path d="M16 3.5 26 7v8c0 6.5-4.3 11-10 13.5C10.3 26 6 21.5 6 15V7z" class="l"/><path d="M11.5 15.5l3 3 6-6.2" class="wk" stroke-width="2"/>',
- kiosk:'<path d="M5.5 14h21v13.5h-21z" class="l"/><path d="M3.5 8.5h25l-2 5.5h-21z" class="p"/><path d="M10 8.5 9 14M16 8.5V14M22 8.5l1 5.5" class="wk"/><rect x="10" y="17" width="12" height="7" class="y"/><path d="M3.5 27.5h25"/>',
- person:'<circle cx="16" cy="11" r="5.5" class="sk"/><path d="M6 28c.8-6.5 4.8-9.5 10-9.5s9.2 3 10 9.5z" class="l"/>',
- gear:'<path d="M16 3.5l2.6 3 3.9-.8.8 3.9 3 2.6-2 3.8 2 3.8-3 2.6-.8 3.9-3.9-.8-2.6 3-2.6-3-3.9.8-.8-3.9-3-2.6 2-3.8-2-3.8 3-2.6.8-3.9 3.9.8z" class="y"/><circle cx="16" cy="16" r="4.2" class="w"/>',
- export:'<rect x="5" y="15" width="22" height="12.5" rx="1.5" class="t"/><path d="M16 3.5v14M11 12.5l5 5 5-5" class="pk" stroke-width="2.2"/>',
- box:'<path d="M4.5 10 16 5l11.5 5v13L16 28 4.5 23z" class="t"/><path d="M4.5 10 16 15l11.5-5M16 15v13"/><path d="M10 7.5l11.5 5" class="pk" stroke-width="2"/>',
- basket:'<path d="M4 13h24l-3 14.5H7z" class="y"/><path d="M9 13l4-8M23 13l-4-8M10 17.5v6M16 17.5v6M22 17.5v6"/>',
- send:'<rect x="5" y="15" width="22" height="12.5" rx="1.5" class="t"/><path d="M16 18.5v-15M11 8.5l5-5 5 5" class="pk" stroke-width="2.2"/>',
- moving:'<path d="M10 15h17v12.5H10z" class="l"/><path d="M8.5 10h20l-1.5 5H10z" class="p"/><rect x="13.5" y="18" width="10" height="6" class="y"/><path d="M1.5 14h4.5M2.5 18.5h4.5M1.5 23h4.5M8 27.5h21" class="pk" stroke-width="2"/>',
- moon:'<path d="M19 4a11.5 11.5 0 1 0 9 16 9.5 9.5 0 0 1-9-16z" class="y"/><circle cx="8" cy="7" r="1.3" class="w"/><circle cx="12.5" cy="4.5" r=".9" class="w"/>',
- // Shop tools on Home.
- closeday:'<path d="M3.5 15h20v12.5h-20z" class="l"/><path d="M2 10.5h23l-1.5 4.5h-20z" class="p"/><rect x="6.5" y="15" width="14" height="9" class="w"/><path d="M6.5 18h14M6.5 21h14M2 27.5h24"/><path d="M26.5 2.5a5.2 5.2 0 1 0 4.4 7.6 4.3 4.3 0 0 1-4.4-7.6z" class="y"/>',
- account:'<path d="M3.5 11.5 14.5 5l11 6.5z" class="p"/><path d="M5 11.5h19M6.5 13.5v9M11 13.5v9M15.5 13.5v9"/><path d="M3.5 25h12"/><rect x="17" y="17" width="12" height="9" rx="1.2" class="y"/><path d="M19.5 20.5h7M19.5 23h4"/>',
- profit:'<rect x="5" y="18.5" width="5.5" height="9" class="y"/><rect x="13.2" y="13" width="5.5" height="14.5" class="l"/><rect x="21.4" y="7" width="5.5" height="20.5" class="p"/><path d="M3.5 27.5h25"/>',
- // Optional modules ("Add to your shop").
- clock:'<circle cx="16" cy="16.5" r="12" class="y"/><circle cx="16" cy="16.5" r="8.6" class="w"/><path d="M16 11.5v5l3.8 2.4"/><circle cx="16" cy="16.5" r="1.2" class="p" stroke="none"/>',
- gate:'<rect x="3.5" y="5.5" width="21" height="22" class="l"/><path d="M3.5 5.5l7 11-7 11M10.5 5.5l7 11-7 11M17.5 5.5l7 11-7 11M10.5 5.5l-7 11 7 11M17.5 5.5l-7 11 7 11M24.5 5.5l-7 11 7 11" class="wk" stroke-width="1.3"/><path d="M3.5 5.5h21M3.5 27.5h21"/><circle cx="24" cy="23" r="5.2" class="p"/><path d="M21.6 23.1l1.7 1.7 3.1-3.3" class="wk" stroke-width="1.9"/>',
- notes:'<path d="M5.5 5h21v15.5l-7 7h-14z" class="y"/><path d="M26.5 20.5h-7v7z" class="pp"/><path d="M9.5 11h13M9.5 15.2h13M9.5 19.4h6"/>',
- buzz:'<path d="M4.5 6.5h23v14.5H14l-6.5 5.5V21h-3z" class="p"/><circle cx="10.5" cy="13.8" r="1.7" class="w" stroke="none"/><circle cx="16" cy="13.8" r="1.7" class="w" stroke="none"/><circle cx="21.5" cy="13.8" r="1.7" class="w" stroke="none"/>',
- shifts:'<rect x="4.5" y="7" width="23" height="20.5" rx="1.5" class="pp"/><path d="M16 12.5h11.5v13.5q0 1.5-1.5 1.5H16z" class="l" stroke="none"/><path d="M4.5 12.5V8.5q0-1.5 1.5-1.5h20q1.5 0 1.5 1.5v4z" class="p"/><rect x="4.5" y="7" width="23" height="20.5" rx="1.5"/><path d="M16 12.5v15M10 4.5v5M22 4.5v5"/><circle cx="10.2" cy="20" r="3" class="y"/><path d="M23.6 16.6a3.4 3.4 0 1 0 0 6.8 4.2 4.2 0 0 1 0-6.8z" class="w" stroke="none"/>',
- delivery:'<path d="M2.5 12.5h5M1.5 17h6M3 21.5h4.5" class="pk" stroke-width="2.2"/><rect x="9.5" y="7.5" width="19.5" height="18" class="t"/><path d="M9.5 13h19.5"/><rect x="16.8" y="7.5" width="5" height="5.5" class="y"/>',
- alerts:'<path d="M8 23c1.6-1.7 2.2-3.6 2.2-7a5.8 5.8 0 0 1 11.6 0c0 3.4.6 5.3 2.2 7z" class="y"/><path d="M13.6 26a2.4 2.4 0 0 0 4.8 0"/><path d="M16 7.2V5"/><circle cx="23.5" cy="8.5" r="3.6" class="p"/>',
- verified:'<path d="M3.5 11.5 14.5 5l11 6.5z" class="p"/><path d="M5 11.5h19M6.5 13.5v9M11 13.5v9M15.5 13.5v9M20 13.5v7"/><path d="M3.5 25h12"/><circle cx="23" cy="22" r="6" class="l"/><path d="M20.3 22.1l1.9 1.9 3.4-3.6" class="wk" stroke-width="1.9"/>',
- supervisor:'<rect x="6.5" y="6" width="19" height="22" rx="1.5" class="l"/><rect x="9" y="9.5" width="14" height="16" class="w"/><rect x="11.5" y="3.5" width="9" height="5" rx="1" class="y"/><path d="M11.5 14.3l1.5 1.5 2.8-3M17.5 14h3.5M11.5 21l1.5 1.5 2.8-3M17.5 20.8h3.5"/>',
- scan:'<path d="M4.5 10.5v-6h6M21.5 4.5h6v6M27.5 21.5v6h-6M10.5 27.5h-6v-6"/><rect x="8.5" y="9.5" width="15" height="13" rx="1" class="w"/><path d="M11 11.5v9M13.5 11.5v9M16 11.5v9M19 11.5v9M21 11.5v9" stroke-width="1.5"/><path d="M6.5 16h19" class="pk" stroke-width="2.2"/>'
-};
-const markSvg=(name,size=32,cls='')=>MARKS[name]?`<svg class="mk${cls?' '+cls:''}" width="${size}" height="${size}" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><g>${MARKS[name]}</g></svg>`:'';
-
-__exports.markSvg=markSvg;__exports.MARKS=MARKS;
-});
 __d("/home/claude/fiyesi/packages/i18n/i18n.mjs",function(__exports,__r){
 /* Language lookup. English is the base: a missing key always falls back to English, never to a blank.
  * A language with status "empty" is not offered. Plural keys end in .one / .other and are chosen by vars.count. */
@@ -2788,6 +2697,28 @@ __exports.default={meta:{name:'English',status:'reviewed'},strings:{
  "pay.fold":"It didn’t arrive, or the buyer left",
  "collect.full":"Full {amount}",
  "collect.half":"Half {amount}",
+ "lang.search":"Search languages",
+ "lang.suggested":"Suggested in Nigeria",
+ "lang.sub":"The words in Fiyesi. Money and dates stay the same.",
+ "me.photo":"Use my photo",
+ "me.photo.note":"It stays on this phone. Only a small copy is kept.",
+ "me.yours":"Your photo",
+ "me.photo.err":"That picture could not be opened. Try another one.",
+ "inst.title":"Put Fiyesi on this phone",
+ "inst.why":"Opens like an app and works without data.",
+ "inst.add":"Add",
+ "inst.later":"Not now",
+ "inst.done":"Already on this phone.",
+ "inst.now":"Install now",
+ "inst.p1":"One tap from your home screen, like any app.",
+ "inst.p2":"Works without data once it is on the phone.",
+ "inst.p3":"Your records stay on this phone and your shop, as now.",
+ "inst.ios1":"Tap the Share button {share} at the bottom of Safari.",
+ "inst.ios2":"Scroll down and tap “Add to Home Screen”.",
+ "inst.ios3":"Tap “Add”. Fiyesi is now on your home screen.",
+ "inst.menu1":"Open your browser menu (⋮ or ⋯).",
+ "inst.menu2":"Tap “Install app” or “Add to Home screen”.",
+ "me.edit":"Change your picture",
  "me.short":"Shows on your picture across the app",
  "me.none":"Your initials for now",
  "me.pick":"Choose a face",
@@ -4584,6 +4515,28 @@ __exports.default={meta:{name:'Pidgin',status:'draft'},strings:{
  "pay.fold":"The money no land, or the buyer don waka",
  "collect.full":"All {amount}",
  "collect.half":"Half {amount}",
+ "lang.search":"Find language",
+ "lang.suggested":"Wetin we suggest for Nigeria",
+ "lang.sub":"The words for Fiyesi. Money and date no go change.",
+ "me.photo":"Use my photo",
+ "me.photo.note":"E go stay for this phone. Na small copy we go keep.",
+ "me.yours":"Your photo",
+ "me.photo.err":"We no fit open that picture. Try another one.",
+ "inst.title":"Put Fiyesi for this phone",
+ "inst.why":"E go open like app and e dey work without data.",
+ "inst.add":"Add am",
+ "inst.later":"No be now",
+ "inst.done":"E don dey this phone.",
+ "inst.now":"Install am now",
+ "inst.p1":"One touch from your home screen, like any app.",
+ "inst.p2":"E dey work without data once e dey phone.",
+ "inst.p3":"Your records go still dey this phone and your shop, as e be now.",
+ "inst.ios1":"Touch the Share button {share} for under Safari.",
+ "inst.ios2":"Scroll down and touch “Add to Home Screen”.",
+ "inst.ios3":"Touch “Add”. Fiyesi don dey your home screen.",
+ "inst.menu1":"Open your browser menu (⋮ or ⋯).",
+ "inst.menu2":"Touch “Install app” or “Add to Home screen”.",
+ "me.edit":"Change your picture",
  "me.short":"E dey show for your picture everywhere for the app",
  "me.none":"Na your initials for now",
  "me.pick":"Choose face",
@@ -6350,6 +6303,28 @@ __exports.default={meta:{name:'Yorùbá',status:'draft'},strings:{
  "pay.fold":"Owó náà kò dé, tàbí oníbàárà ti lọ",
  "collect.full":"Gbogbo rẹ̀ {amount}",
  "collect.half":"Ìdajì {amount}",
+ "lang.search":"Wá èdè",
+ "lang.suggested":"A dámọ̀ràn ní Nàìjíríà",
+ "lang.sub":"Àwọn ọ̀rọ̀ inú Fiyesi. Owó àti ọjọ́ kò ní yí padà.",
+ "me.photo":"Lo fọ́tò mi",
+ "me.photo.note":"Ó máa wà lórí fóònù yìí. Ẹ̀dà kékeré nìkan la máa tọ́jú.",
+ "me.yours":"Fọ́tò rẹ",
+ "me.photo.err":"A kò lè ṣí àwòrán yẹn. Gbìyànjú òmíràn.",
+ "inst.title":"Fi Fiyesi sórí fóònù yìí",
+ "inst.why":"Ó ń ṣí bí app, ó sì ń ṣiṣẹ́ láìsí dátà.",
+ "inst.add":"Fi kún un",
+ "inst.later":"Kì í ṣe báyìí",
+ "inst.done":"Ó ti wà lórí fóònù yìí.",
+ "inst.now":"Fi sórí rẹ̀ báyìí",
+ "inst.p1":"Ìfọwọ́kàn kan láti ojú-ìbẹ̀rẹ̀ fóònù rẹ, bí app èyíkéyìí.",
+ "inst.p2":"Ó ń ṣiṣẹ́ láìsí dátà tí ó bá ti wà lórí fóònù.",
+ "inst.p3":"Àkọsílẹ̀ rẹ yóò wà lórí fóònù yìí àti nínú ṣọ́ọ̀bù rẹ, bí ti ìsinsìnyí.",
+ "inst.ios1":"Tẹ bọ́tìnnì Share {share} ní ìsàlẹ̀ Safari.",
+ "inst.ios2":"Yí lọ sí ìsàlẹ̀ kí o tẹ “Add to Home Screen”.",
+ "inst.ios3":"Tẹ “Add”. Fiyesi ti wà lójú-ìbẹ̀rẹ̀ rẹ.",
+ "inst.menu1":"Ṣí àkójọ ẹ̀rọ aṣàwákiri rẹ (⋮ tàbí ⋯).",
+ "inst.menu2":"Tẹ “Install app” tàbí “Add to Home screen”.",
+ "me.edit":"Yí àwòrán rẹ padà",
  "me.short":"Ó máa hàn lórí àwòrán rẹ káàkiri app náà",
  "me.none":"Àwọn lẹ́tà orúkọ rẹ fún báyìí",
  "me.pick":"Yan ojú kan",
@@ -8116,6 +8091,28 @@ __exports.default={meta:{name:'Igbo',status:'draft'},strings:{
  "pay.fold":"Ego ahụ abịaghị, ma ọ bụ onye ahịa ahụ apụọla",
  "collect.full":"Niile {amount}",
  "collect.half":"Ọkara {amount}",
+ "lang.search":"Chọọ asụsụ",
+ "lang.suggested":"Atụ aro na Naịjirịa",
+ "lang.sub":"Okwu dị na Fiyesi. Ego na ụbọchị ka bụ otu.",
+ "me.photo":"Jiri foto m",
+ "me.photo.note":"Ọ ga-anọ na ekwentị a. Naanị obere mbipụta ka a ga-edebe.",
+ "me.yours":"Foto gị",
+ "me.photo.err":"Enweghị ike imepe foto ahụ. Nwaa nke ọzọ.",
+ "inst.title":"Tinye Fiyesi na ekwentị a",
+ "inst.why":"Ọ na-emepe dị ka app ma na-arụ ọrụ na-enweghị data.",
+ "inst.add":"Tinye",
+ "inst.later":"Ọ bụghị ugbu a",
+ "inst.done":"Ọ dịlarị na ekwentị a.",
+ "inst.now":"Tinye ya ugbu a",
+ "inst.p1":"Otu mmetụ site na ihuenyo mbụ gị, dị ka app ọ bụla.",
+ "inst.p2":"Ọ na-arụ ọrụ na-enweghị data ozugbo ọ nọ na ekwentị.",
+ "inst.p3":"Ndekọ gị ga-anọ na ekwentị a na ụlọ ahịa gị, dị ka ugbu a.",
+ "inst.ios1":"Pịa bọtịnụ Share {share} n’okpuru Safari.",
+ "inst.ios2":"Gbadaa ma pịa “Add to Home Screen”.",
+ "inst.ios3":"Pịa “Add”. Fiyesi dị na ihuenyo mbụ gị ugbu a.",
+ "inst.menu1":"Mepee menu ihe nchọgharị gị (⋮ ma ọ bụ ⋯).",
+ "inst.menu2":"Pịa “Install app” ma ọ bụ “Add to Home screen”.",
+ "me.edit":"Gbanwee foto gị",
  "me.short":"Ọ na-egosi na foto gị n’ebe niile n’ime app",
  "me.none":"Mkpụrụ edemede aha gị ugbu a",
  "me.pick":"Họrọ ihu",
@@ -9882,6 +9879,28 @@ __exports.default={meta:{name:'Hausa',status:'draft'},strings:{
  "pay.fold":"Kuɗin bai iso ba, ko mai saye ya tafi",
  "collect.full":"Duka {amount}",
  "collect.half":"Rabi {amount}",
+ "lang.search":"Nemo harshe",
+ "lang.suggested":"Shawarwari a Najeriya",
+ "lang.sub":"Kalmomin Fiyesi. Kuɗi da kwanan wata ba sa canzawa.",
+ "me.photo":"Yi amfani da hotona",
+ "me.photo.note":"Zai zauna a wannan wayar. Ƙaramin kwafi kaɗai ake ajiyewa.",
+ "me.yours":"Hotonka",
+ "me.photo.err":"Ba a iya buɗe wannan hoton ba. Gwada wani.",
+ "inst.title":"Saka Fiyesi a wannan wayar",
+ "inst.why":"Yana buɗewa kamar manhaja kuma yana aiki ba tare da data ba.",
+ "inst.add":"Ƙara",
+ "inst.later":"Ba yanzu ba",
+ "inst.done":"Ya riga ya kasance a wannan wayar.",
+ "inst.now":"Saka shi yanzu",
+ "inst.p1":"Taɓawa ɗaya daga allon farko, kamar kowace manhaja.",
+ "inst.p2":"Yana aiki ba tare da data ba da zarar yana kan waya.",
+ "inst.p3":"Bayananka za su zauna a wannan wayar da shagonka, kamar yadda yake yanzu.",
+ "inst.ios1":"Taɓa maɓallin Share {share} a ƙasan Safari.",
+ "inst.ios2":"Gungura ƙasa ka taɓa “Add to Home Screen”.",
+ "inst.ios3":"Taɓa “Add”. Fiyesi yana kan allon farkonka yanzu.",
+ "inst.menu1":"Buɗe menu na burauzarka (⋮ ko ⋯).",
+ "inst.menu2":"Taɓa “Install app” ko “Add to Home screen”.",
+ "me.edit":"Canza hotonka",
  "me.short":"Yana bayyana a hotonka a ko'ina cikin manhajar",
  "me.none":"Baƙaƙen sunanka a yanzu",
  "me.pick":"Zaɓi fuska",
@@ -11218,6 +11237,226 @@ const {t,setLanguage,language,available}=i18n;
 
 __exports.catalogs=catalogs;__exports.t=t;__exports.setLanguage=setLanguage;__exports.language=language;__exports.available=available;__exports.createI18n=createI18n;
 });
+__d("/home/claude/fiyesi/app/staging/lang-sheet.mjs",function(__exports,__r){
+// Language as one global control (decisions 119, 148): a button with a globe and the current language opens a sheet.
+// Each language shows in its own words with the English name under it; "Suggested in Nigeria" lists the five we offer.
+const {t,language,available}=__r("/home/claude/fiyesi/packages/i18n/index.mjs");
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const EN={en:'English',pcm:'Nigerian Pidgin',yo:'Yoruba',ig:'Igbo',ha:'Hausa'};
+const GLOBE='<svg class="globe" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 3.9 5.6 3.9 9s-1.3 6.4-3.9 9c-2.6-2.6-3.9-5.6-3.9-9S9.4 5.6 12 3z"/></svg>';
+const cur=()=>available().find(l=>l.code===language())||{code:'en',name:'English'};
+function langButton(cls='lang-btn'){
+ if(available().length<2)return '';
+ return `<button type="button" class="${cls}" data-lang-open aria-haspopup="dialog" aria-label="${esc(t('common.language'))}: ${esc(cur().name)}">${GLOBE}<span lang="${cur().code}">${esc(cur().name)}</span></button>`;
+}
+function langSheet(open){
+ if(!open)return '';
+ const rows=available().map(l=>`<button type="button" class="ls-row" role="radio" aria-checked="${l.code===language()}" data-lang-chip="${l.code}" data-lang-find="${esc((l.name+' '+(EN[l.code]||'')).toLowerCase())}"><span><b lang="${l.code}">${esc(l.name)}</b>${EN[l.code]&&EN[l.code]!==l.name?`<small>${esc(EN[l.code])}</small>`:''}</span>${l.code===language()?'<i class="ls-tick" aria-hidden="true"></i>':''}</button>`).join('');
+ return `<div class="sp-scrim ls-scrim" data-lang-close></div><section class="sp-sheet ls-sheet" role="dialog" aria-modal="true" aria-label="${esc(t('common.language'))}"><h2>${esc(t('common.language'))}</h2><input class="text-field ls-search" type="search" data-lang-search autocomplete="off" placeholder="${esc(t('lang.search'))}" aria-label="${esc(t('lang.search'))}"><p class="ls-group">${esc(t('lang.suggested'))}</p><div class="ls-list" role="radiogroup" aria-label="${esc(t('common.language'))}">${rows}</div><button type="button" class="link-btn sp-close" data-lang-close>${esc(t('sp.close'))}</button></section>`;
+}
+// Live filter as you type in the sheet's search.
+function filterLangs(root,q){
+ const v=String(q||'').trim().toLowerCase();
+ root.querySelectorAll?.('[data-lang-find]').forEach(r=>{r.hidden=Boolean(v)&&!r.dataset.langFind.includes(v);});
+}
+
+__exports.langButton=langButton;__exports.langSheet=langSheet;__exports.filterLangs=filterLangs;__exports.GLOBE=GLOBE;
+});
+__d("/home/claude/fiyesi/app/staging/marks.mjs",function(__exports,__r){
+// Drawn marks, style v2 (decision 136). The study page is design/icons/; this file is the source. Same tier as the tab icons: 32 x 32, a kola line,
+// v2 colours by class (p paprika, y yellow, l leaf, w cream, pp paper, t sack), a hard kola offset shadow on the right
+// when shown in colour, and the same drawing in paper with a muted line when quiet. For things that carry meaning:
+// the four ways to pay and the optional modules. Controls (back, close, search, arrows) stay plain line icons.
+const MARKS={
+ // Ways to pay. The state (paid, waiting, owing) is still shown by the chip's words and shape, never by the mark.
+ cash:'<rect x="3.5" y="9" width="20" height="12" rx="1" class="l" transform="rotate(-9 13.5 15)"/><rect x="8" y="12.5" width="20.5" height="12.5" rx="1" class="l"/><circle cx="18.2" cy="18.7" r="3.2" class="w"/><path d="M11.5 15.5v6.4M25 15.5v6.4" class="wk"/>',
+ transfer:'<rect x="4.5" y="4.5" width="13" height="23" rx="2.5" class="pp"/><rect x="7" y="8" width="8" height="13" class="y" stroke="none"/><circle cx="11" cy="24.3" r="1.1" class="p" stroke="none"/><path d="M11.5 12.2h9.5V8.6l7 6.4-7 6.4v-3.6h-9.5z" class="p"/>',
+ pos:'<rect x="11" y="2.5" width="10" height="6" rx=".8" class="p"/><rect x="7.5" y="6" width="17" height="22.5" rx="2.5" class="y"/><rect x="10.5" y="9" width="11" height="6" rx=".6" class="l"/><path d="M12 19h.6M16 19h.6M20 19h.6M12 22.8h.6M16 22.8h.6M20 22.8h.6" stroke-width="2.4"/>',
+ // Split: one sale paid more than one way (a note and a phone together, with a plus).
+ split:'<rect x="2.5" y="9" width="16" height="10.5" rx="1" class="l" transform="rotate(-9 10.5 14.2)"/><circle cx="10.4" cy="14.3" r="2.3" class="w"/><rect x="15.5" y="8.5" width="12" height="19.5" rx="2.3" class="pp"/><rect x="17.6" y="11.5" width="7.8" height="10" class="y" stroke="none"/><circle cx="9" cy="24.3" r="4.8" class="p"/><path d="M9 21.8v5M6.5 24.3h5" class="wk" stroke-width="2"/>',
+ owing:'<rect x="5" y="4" width="17" height="24" rx="1.5" class="p"/><path d="M9 4v24"/><rect x="11.5" y="8.5" width="7.5" height="5" rx=".5" class="w"/><path d="M20.5 27.5 26 12.5l3 1.1-5.5 15-3.2 1.6z" class="y"/><path d="M25.4 14.2l2.9 1"/>',
+ // Settings rows (decision 136 extended): the things people recognise in Profile, Team and the shop's settings.
+ team:'<rect x="8" y="5" width="16" height="23" rx="2.2" class="y"/><path d="M13 5V3h6v2"/><circle cx="16" cy="13" r="3.4" class="sk"/><path d="M10.5 22.5c.7-3.2 3-4.8 5.5-4.8s4.8 1.6 5.5 4.8z" class="l"/>',
+ plan:'<path d="M4 15.5 15.5 4H27v11.5L15.5 27z" class="p"/><circle cx="21.5" cy="9.5" r="2.2" class="w"/>',
+ signboard:'<rect x="3.5" y="5" width="25" height="13" rx="1" class="w"/><path d="M8 18v10M24 18v10M3.5 28h25"/><path d="M8 10h11M8 13.5h7"/><circle cx="23.5" cy="11.5" r="1.8" class="p" stroke="none"/>',
+ activity:'<rect x="4.5" y="4" width="17" height="24" rx="1.5" class="pp"/><path d="M8.5 10h9M8.5 14h9M8.5 18h5"/><circle cx="22.5" cy="21.5" r="6" class="y"/><path d="M22.5 18.5v3.2l2.2 1.4"/>',
+ sounds:'<path d="M3.5 12h5l7-6v20l-7-6h-5z" class="y"/><path d="M20 11.5a6 6 0 0 1 0 9M23.5 8a10.5 10.5 0 0 1 0 16"/>',
+ // Put Fiyesi on this phone (decision 149): the phone with a yellow arrow coming down onto a leaf screen.
+ install:'<rect x="8" y="3.5" width="16" height="25" rx="2.5" class="pp"/><rect x="10.5" y="7" width="11" height="15" class="l" stroke="none"/><circle cx="16" cy="25.2" r="1.1" class="p" stroke="none"/><path d="M13.7 8.6h4.6v5.2h3.1L16 19.6l-5.4-5.8h3.1z" class="y"/>',
+ // Language (decision 148): two speech bubbles, the words in Fiyesi.
+ language:'<path d="M13 5.5h14a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5h-2.5v3.5l-4-3.5H13a1.5 1.5 0 0 1-1.5-1.5V7A1.5 1.5 0 0 1 13 5.5z" class="y"/><path d="M5 11.5h14a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5h-7l-4 3.5v-3.5H5A1.5 1.5 0 0 1 3.5 22v-9A1.5 1.5 0 0 1 5 11.5z" class="p"/><path d="M7.5 16.5h9M7.5 20h6" class="wk" stroke-width="2"/>',
+ phone:'<rect x="9" y="3.5" width="14" height="25" rx="2.5" class="pp"/><rect x="11.5" y="7" width="9" height="15" class="l" stroke="none"/><circle cx="16" cy="25" r="1.1" class="p" stroke="none"/><path d="M4.5 11v10M27.5 11v10" class="pk" stroke-width="2.2"/>',
+ stamp:'<rect x="12.5" y="3.5" width="7" height="9" rx="2" class="y"/><path d="M8 12.5h16v6H8z" class="p"/><path d="M5 23h22v4.5H5z" class="pp"/>',
+ receipt:'<path d="M7 4h18v24l-3-2-3 2-3-2-3 2-3-2-3 2z" class="pp"/><path d="M11 10h10M11 14h10"/><circle cx="16" cy="20.5" r="3.4" class="p"/>',
+ lock:'<path d="M10.5 14v-4a5.5 5.5 0 0 1 11 0v4"/><rect x="7" y="14" width="18" height="14" rx="2" class="y"/><circle cx="16" cy="20" r="2" class="w"/><path d="M16 22v2.5"/>',
+ shield:'<path d="M16 3.5 26 7v8c0 6.5-4.3 11-10 13.5C10.3 26 6 21.5 6 15V7z" class="l"/><path d="M11.5 15.5l3 3 6-6.2" class="wk" stroke-width="2"/>',
+ kiosk:'<path d="M5.5 14h21v13.5h-21z" class="l"/><path d="M3.5 8.5h25l-2 5.5h-21z" class="p"/><path d="M10 8.5 9 14M16 8.5V14M22 8.5l1 5.5" class="wk"/><rect x="10" y="17" width="12" height="7" class="y"/><path d="M3.5 27.5h25"/>',
+ person:'<circle cx="16" cy="11" r="5.5" class="sk"/><path d="M6 28c.8-6.5 4.8-9.5 10-9.5s9.2 3 10 9.5z" class="l"/>',
+ gear:'<path d="M16 3.5l2.6 3 3.9-.8.8 3.9 3 2.6-2 3.8 2 3.8-3 2.6-.8 3.9-3.9-.8-2.6 3-2.6-3-3.9.8-.8-3.9-3-2.6 2-3.8-2-3.8 3-2.6.8-3.9 3.9.8z" class="y"/><circle cx="16" cy="16" r="4.2" class="w"/>',
+ export:'<rect x="5" y="15" width="22" height="12.5" rx="1.5" class="t"/><path d="M16 3.5v14M11 12.5l5 5 5-5" class="pk" stroke-width="2.2"/>',
+ box:'<path d="M4.5 10 16 5l11.5 5v13L16 28 4.5 23z" class="t"/><path d="M4.5 10 16 15l11.5-5M16 15v13"/><path d="M10 7.5l11.5 5" class="pk" stroke-width="2"/>',
+ basket:'<path d="M4 13h24l-3 14.5H7z" class="y"/><path d="M9 13l4-8M23 13l-4-8M10 17.5v6M16 17.5v6M22 17.5v6"/>',
+ send:'<rect x="5" y="15" width="22" height="12.5" rx="1.5" class="t"/><path d="M16 18.5v-15M11 8.5l5-5 5 5" class="pk" stroke-width="2.2"/>',
+ moving:'<path d="M10 15h17v12.5H10z" class="l"/><path d="M8.5 10h20l-1.5 5H10z" class="p"/><rect x="13.5" y="18" width="10" height="6" class="y"/><path d="M1.5 14h4.5M2.5 18.5h4.5M1.5 23h4.5M8 27.5h21" class="pk" stroke-width="2"/>',
+ moon:'<path d="M19 4a11.5 11.5 0 1 0 9 16 9.5 9.5 0 0 1-9-16z" class="y"/><circle cx="8" cy="7" r="1.3" class="w"/><circle cx="12.5" cy="4.5" r=".9" class="w"/>',
+ // Shop tools on Home.
+ closeday:'<path d="M3.5 15h20v12.5h-20z" class="l"/><path d="M2 10.5h23l-1.5 4.5h-20z" class="p"/><rect x="6.5" y="15" width="14" height="9" class="w"/><path d="M6.5 18h14M6.5 21h14M2 27.5h24"/><path d="M26.5 2.5a5.2 5.2 0 1 0 4.4 7.6 4.3 4.3 0 0 1-4.4-7.6z" class="y"/>',
+ account:'<path d="M3.5 11.5 14.5 5l11 6.5z" class="p"/><path d="M5 11.5h19M6.5 13.5v9M11 13.5v9M15.5 13.5v9"/><path d="M3.5 25h12"/><rect x="17" y="17" width="12" height="9" rx="1.2" class="y"/><path d="M19.5 20.5h7M19.5 23h4"/>',
+ profit:'<rect x="5" y="18.5" width="5.5" height="9" class="y"/><rect x="13.2" y="13" width="5.5" height="14.5" class="l"/><rect x="21.4" y="7" width="5.5" height="20.5" class="p"/><path d="M3.5 27.5h25"/>',
+ // Optional modules ("Add to your shop").
+ clock:'<circle cx="16" cy="16.5" r="12" class="y"/><circle cx="16" cy="16.5" r="8.6" class="w"/><path d="M16 11.5v5l3.8 2.4"/><circle cx="16" cy="16.5" r="1.2" class="p" stroke="none"/>',
+ gate:'<rect x="3.5" y="5.5" width="21" height="22" class="l"/><path d="M3.5 5.5l7 11-7 11M10.5 5.5l7 11-7 11M17.5 5.5l7 11-7 11M10.5 5.5l-7 11 7 11M17.5 5.5l-7 11 7 11M24.5 5.5l-7 11 7 11" class="wk" stroke-width="1.3"/><path d="M3.5 5.5h21M3.5 27.5h21"/><circle cx="24" cy="23" r="5.2" class="p"/><path d="M21.6 23.1l1.7 1.7 3.1-3.3" class="wk" stroke-width="1.9"/>',
+ notes:'<path d="M5.5 5h21v15.5l-7 7h-14z" class="y"/><path d="M26.5 20.5h-7v7z" class="pp"/><path d="M9.5 11h13M9.5 15.2h13M9.5 19.4h6"/>',
+ buzz:'<path d="M4.5 6.5h23v14.5H14l-6.5 5.5V21h-3z" class="p"/><circle cx="10.5" cy="13.8" r="1.7" class="w" stroke="none"/><circle cx="16" cy="13.8" r="1.7" class="w" stroke="none"/><circle cx="21.5" cy="13.8" r="1.7" class="w" stroke="none"/>',
+ shifts:'<rect x="4.5" y="7" width="23" height="20.5" rx="1.5" class="pp"/><path d="M16 12.5h11.5v13.5q0 1.5-1.5 1.5H16z" class="l" stroke="none"/><path d="M4.5 12.5V8.5q0-1.5 1.5-1.5h20q1.5 0 1.5 1.5v4z" class="p"/><rect x="4.5" y="7" width="23" height="20.5" rx="1.5"/><path d="M16 12.5v15M10 4.5v5M22 4.5v5"/><circle cx="10.2" cy="20" r="3" class="y"/><path d="M23.6 16.6a3.4 3.4 0 1 0 0 6.8 4.2 4.2 0 0 1 0-6.8z" class="w" stroke="none"/>',
+ delivery:'<path d="M2.5 12.5h5M1.5 17h6M3 21.5h4.5" class="pk" stroke-width="2.2"/><rect x="9.5" y="7.5" width="19.5" height="18" class="t"/><path d="M9.5 13h19.5"/><rect x="16.8" y="7.5" width="5" height="5.5" class="y"/>',
+ alerts:'<path d="M8 23c1.6-1.7 2.2-3.6 2.2-7a5.8 5.8 0 0 1 11.6 0c0 3.4.6 5.3 2.2 7z" class="y"/><path d="M13.6 26a2.4 2.4 0 0 0 4.8 0"/><path d="M16 7.2V5"/><circle cx="23.5" cy="8.5" r="3.6" class="p"/>',
+ verified:'<path d="M3.5 11.5 14.5 5l11 6.5z" class="p"/><path d="M5 11.5h19M6.5 13.5v9M11 13.5v9M15.5 13.5v9M20 13.5v7"/><path d="M3.5 25h12"/><circle cx="23" cy="22" r="6" class="l"/><path d="M20.3 22.1l1.9 1.9 3.4-3.6" class="wk" stroke-width="1.9"/>',
+ supervisor:'<rect x="6.5" y="6" width="19" height="22" rx="1.5" class="l"/><rect x="9" y="9.5" width="14" height="16" class="w"/><rect x="11.5" y="3.5" width="9" height="5" rx="1" class="y"/><path d="M11.5 14.3l1.5 1.5 2.8-3M17.5 14h3.5M11.5 21l1.5 1.5 2.8-3M17.5 20.8h3.5"/>',
+ scan:'<path d="M4.5 10.5v-6h6M21.5 4.5h6v6M27.5 21.5v6h-6M10.5 27.5h-6v-6"/><rect x="8.5" y="9.5" width="15" height="13" rx="1" class="w"/><path d="M11 11.5v9M13.5 11.5v9M16 11.5v9M19 11.5v9M21 11.5v9" stroke-width="1.5"/><path d="M6.5 16h19" class="pk" stroke-width="2.2"/>'
+};
+const markSvg=(name,size=32,cls='')=>MARKS[name]?`<svg class="mk${cls?' '+cls:''}" width="${size}" height="${size}" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><g>${MARKS[name]}</g></svg>`:'';
+
+__exports.markSvg=markSvg;__exports.MARKS=MARKS;
+});
+__d("/home/claude/fiyesi/app/staging/install.mjs",function(__exports,__r){
+// Put Fiyesi on this phone (decision 149). Lives in Profile under "This phone". A quiet card on Home invites it only
+// when it is likely wanted: not already installed, the phone can install, the shop has its first sale, and the person
+// has not said "Not now" in the last 14 days; at most three times ever. Never on Sell, Pay or any form.
+const {t}=__r("/home/claude/fiyesi/packages/i18n/index.mjs");
+const {markSvg}=__r("/home/claude/fiyesi/app/staging/marks.mjs");
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const KEY='fiyesi.install',DAY=864e5;
+let deferred=null,installed=false;
+try{globalThis.addEventListener?.('beforeinstallprompt',e=>{e.preventDefault();deferred=e;globalThis.dispatchEvent?.(new Event('fiyesi-install-ready'));});
+ globalThis.addEventListener?.('appinstalled',()=>{installed=true;deferred=null;});}catch{}
+const standalone=()=>installed||Boolean(globalThis.matchMedia?.('(display-mode: standalone)').matches)||globalThis.navigator?.standalone===true;
+const isIOS=(ua=globalThis.navigator?.userAgent||'')=>/iphone|ipad|ipod/i.test(ua)||(/macintosh/i.test(ua)&&(globalThis.navigator?.maxTouchPoints||0)>1);
+// 'done' already on the phone · 'prompt' the browser can install with one tap · 'ios' Share then Add to Home Screen · 'menu' the browser menu
+const installWay=()=>standalone()?'done':deferred?'prompt':isIOS()?'ios':'menu';
+const read=(st=globalThis.localStorage)=>{try{return JSON.parse(st?.getItem(KEY)||'{}')||{};}catch{return {};}};
+const write=(v,st=globalThis.localStorage)=>{try{st?.setItem(KEY,JSON.stringify(v));}catch{}};
+function shouldNudge(s,{now=Date.now(),way=installWay(),store}={}){
+ if(way==='done'||way==='menu'||!s||!(s.sales||[]).length)return false;
+ const r=read(store);if((r.shown||0)>=3)return false;
+ return !(r.notNowAt&&now-r.notNowAt<14*DAY);
+}
+const noteShown=(store)=>{const r=read(store);write({...r,shown:(r.shown||0)+1,lastAt:Date.now()},store);};
+const notNow=(store)=>{const r=read(store);write({...r,notNowAt:Date.now()},store);};
+async function promptInstall(){if(!deferred)return false;const e=deferred;deferred=null;try{await e.prompt();const c=await e.userChoice;return c?.outcome==='accepted';}catch{return false;}}
+// The drawn install mark (style v2, decision 136): same tier as the settings marks.
+const PHONE=markSvg('install',34);
+const installCard=()=>`<section class="inst-card" aria-label="${esc(t('inst.title'))}"><span class="inst-ico">${PHONE}</span><span class="inst-text"><b>${esc(t('inst.title'))}</b><small>${esc(t('inst.why'))}</small></span><span class="inst-acts"><button type="button" class="inst-yes" data-install-open>${esc(t('inst.add'))}</button><button type="button" class="link-btn inst-no" data-install-later>${esc(t('inst.later'))}</button></span></section>`;
+const installRow=(cell)=>{const way=installWay();return cell({attrs:way==='done'?'':'data-install-open aria-haspopup="dialog"',tile:`<span class="cell-mark" aria-hidden="true">${markSvg('install',30)}</span>`,title:t('inst.title'),sub:way==='done'?t('inst.done'):t('inst.why'),chev:way!=='done'});};
+const SHARE='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m-4 4 4-4 4 4"/><path d="M6 10H5v11h14V10h-1"/></svg>';
+function installSheet(open){
+ if(!open)return '';const way=installWay();
+ const steps=way==='ios'?`<ol class="inst-steps"><li>${t('inst.ios1',{share:SHARE})}</li><li>${esc(t('inst.ios2'))}</li><li>${esc(t('inst.ios3'))}</li></ol>`
+  :way==='prompt'?`<button type="button" class="f-main-button" data-install-now><span>${esc(t('inst.now'))}</span></button>`
+  :way==='done'?`<p>${esc(t('inst.done'))}</p>`:`<ol class="inst-steps"><li>${esc(t('inst.menu1'))}</li><li>${esc(t('inst.menu2'))}</li></ol>`;
+ return `<div class="sp-scrim inst-scrim" data-install-close></div><section class="sp-sheet inst-sheet" role="dialog" aria-modal="true" aria-label="${esc(t('inst.title'))}"><span class="inst-ico big">${markSvg('install',52)}</span><h2>${esc(t('inst.title'))}</h2><ul class="inst-points"><li>${esc(t('inst.p1'))}</li><li>${esc(t('inst.p2'))}</li><li>${esc(t('inst.p3'))}</li></ul>${steps}<button type="button" class="link-btn sp-close" data-install-close>${esc(t('sp.close'))}</button></section>`;
+}
+
+__exports.shouldNudge=shouldNudge;__exports.promptInstall=promptInstall;__exports.installSheet=installSheet;__exports.standalone=standalone;__exports.isIOS=isIOS;__exports.installWay=installWay;__exports.noteShown=noteShown;__exports.notNow=notNow;__exports.installCard=installCard;__exports.installRow=installRow;
+});
+__d("/home/claude/fiyesi/app/staging/connection.mjs",function(__exports,__r){
+// Connection states (decision 114): connected, slow and offline. Pure, so it is tested without a network.
+// Slow means online but records are not getting through: one has waited over 20 seconds, or the phone reports 2G.
+const SLOW_AFTER_MS=20000;
+const SLOW_TYPES=['slow-2g','2g'];
+const DONE=['synced','discarded locally','needs review','rejected'];
+function connection({online=true,queue=[],effectiveType='',now=Date.now()}={}){
+ const waiting=queue.filter(r=>!DONE.includes(r.status));
+ if(online===false)return {mode:'offline',waiting:waiting.length};
+ const stuck=waiting.some(r=>now-Date.parse(r.occurredAt||0)>SLOW_AFTER_MS);
+ return {mode:SLOW_TYPES.includes(effectiveType)||stuck?'slow':'online',waiting:waiting.length};
+}
+// The moment to say "Back online": only when coming out of offline.
+const backOnline=(before,after)=>before==='offline'&&after!=='offline';
+
+__exports.connection=connection;__exports.SLOW_AFTER_MS=SLOW_AFTER_MS;__exports.backOnline=backOnline;
+});
+__d("/home/claude/fiyesi/app/staging/accounts.mjs",function(__exports,__r){
+// A shop can list several accounts for transfers. The first is Main: receipts and reminders use it, and it is the first card customers see.
+const MAX_ACCOUNTS=5;
+const listAccounts=s=>Array.isArray(s?.accounts)?s.accounts:(s?.account&&s.account.number?[s.account]:[]);
+const mainOf=list=>list&&list.length?list[0]:null;
+// `acct` is already checked (10 digits, a bank). Returns {ok,accounts} or {ok:false,error:<catalog key>}.
+function addAccount(list,acct){
+ if(!acct||!acct.number||!acct.bank)return {ok:false,error:'accounts.incomplete'};
+ if(list.length>=MAX_ACCOUNTS)return {ok:false,error:'accounts.max'};
+ if(list.some(a=>a.number===acct.number))return {ok:false,error:'accounts.dup'};
+ return {ok:true,accounts:[...list,{bank:acct.bank,number:acct.number,name:acct.name||''}]};
+}
+const makeMain=(list,number)=>{const a=list.find(x=>x.number===number);return a?[a,...list.filter(x=>x!==a)]:list;};
+const removeAccount=(list,number)=>list.filter(a=>a.number!==number);
+
+__exports.addAccount=addAccount;__exports.MAX_ACCOUNTS=MAX_ACCOUNTS;__exports.listAccounts=listAccounts;__exports.mainOf=mainOf;__exports.makeMain=makeMain;__exports.removeAccount=removeAccount;
+});
+__d("/home/claude/fiyesi/app/staging/pricing.mjs",function(__exports,__r){
+// Packs and wholesale. Stock is always counted in the base unit (piece, bottle, kg).
+// A pack is another way to sell the same stock; wholesale is a price for buying many loose units.
+const PACK_KEY=':pack';
+const baseQty=l=>l.quantity*(l.perUnit||1);
+const lineKey=l=>l.productId+((l.perUnit||1)>1?PACK_KEY:'');
+const hasPack=p=>Boolean(p?.pack&&p.pack.size>=2&&p.pack.priceKobo>0);
+const hasWholesale=p=>Boolean(p?.wholesale&&p.wholesale.minQty>=2&&p.wholesale.priceKobo>0);
+// Price of one loose unit when `units` loose units of this product are bought together.
+const unitPrice=(p,units)=>hasWholesale(p)&&units>=p.wholesale.minQty?p.wholesale.priceKobo:p.sellingPriceKobo;
+const packName=p=>hasPack(p)?p.pack.unit:'';
+// cart keys: productId = loose units, productId + ':pack' = packs.
+function cartLinesFor(products,cart){
+ const out=[];
+ for(const p of products||[]){
+  const u=cart?.[p.id]||0,k=hasPack(p)?(cart?.[p.id+PACK_KEY]||0):0;
+  if(u>0){const price=unitPrice(p,u);out.push({productId:p.id,key:p.id,name:p.name,unit:p.unit,quantity:u,perUnit:1,sellingPriceKobo:price,tier:price<p.sellingPriceKobo?'wholesale':'retail',baseQty:u});}
+  if(k>0)out.push({productId:p.id,key:p.id+PACK_KEY,name:`${p.name} (${p.pack.unit})`,unit:p.pack.unit,quantity:k,perUnit:p.pack.size,sellingPriceKobo:p.pack.priceKobo,tier:'pack',baseQty:k*p.pack.size});
+ }
+ return out;
+}
+// Total for items as they are saved ({productId, quantity, pack?}). Same rules as the lines on the receipt.
+function itemsTotalKobo(products,items){
+ const cart={};
+ for(const i of items||[]){const k=i.productId+(i.pack?PACK_KEY:'');cart[k]=(cart[k]||0)+i.quantity;}
+ return cartLinesFor(products,cart).reduce((n,l)=>n+l.quantity*l.sellingPriceKobo,0);
+}
+// Can this pack and wholesale setup be saved? Returns an error sentence or ''.
+function checkPricing({sellingPriceKobo,pack,wholesale}){
+ if(pack){
+  if(!Number.isSafeInteger(pack.size)||pack.size<2||pack.size>10000)return 'A pack holds 2 or more units.';
+  if(!pack.unit)return 'Choose what the pack is called.';
+  if(!Number.isSafeInteger(pack.priceKobo)||pack.priceKobo<=0)return 'Give the pack a price.';
+  if(pack.priceKobo>=pack.size*sellingPriceKobo)return `A pack should cost less than ${pack.size} loose units, or nobody will buy it.`;
+ }
+ if(wholesale){
+  if(!Number.isSafeInteger(wholesale.minQty)||wholesale.minQty<2||wholesale.minQty>100000)return 'Wholesale starts from 2 or more units.';
+  if(!Number.isSafeInteger(wholesale.priceKobo)||wholesale.priceKobo<=0)return 'Give the wholesale price.';
+  if(wholesale.priceKobo>=sellingPriceKobo)return 'The wholesale price should be lower than the normal price.';
+ }
+ return '';
+}
+// "85 pieces = 2 cartons and 5 loose" for the product page.
+function stockPhrase(p){
+ const n=p.stockOnHand;if(n===null||n===undefined)return '';
+ if(!hasPack(p))return `${n} ${p.unit}`;
+ const k=Math.floor(n/p.pack.size),r=n-k*p.pack.size;
+ return `${n} ${p.unit} · ${k} ${p.pack.unit}${k===1?'':'s'}${r?` and ${r} loose`:''}`;
+}
+// What a pack really earns: its price minus what the loose units cost you.
+const packProfit=p=>hasPack(p)&&p.buyingCostKobo!==null&&p.buyingCostKobo!==undefined?p.pack.priceKobo-p.pack.size*p.buyingCostKobo:null;
+
+// Each-price inside a pack, in whole naira. When the pack does not divide evenly, it says about.
+const eachLabel=(packKobo,size,money)=>{const v=packKobo/size,w=Math.round(v/100)*100;return (Math.abs(v-w)<1?'':'about ')+money(w);};
+
+__exports.cartLinesFor=cartLinesFor;__exports.itemsTotalKobo=itemsTotalKobo;__exports.checkPricing=checkPricing;__exports.stockPhrase=stockPhrase;__exports.PACK_KEY=PACK_KEY;__exports.baseQty=baseQty;__exports.lineKey=lineKey;__exports.hasPack=hasPack;__exports.hasWholesale=hasWholesale;__exports.unitPrice=unitPrice;__exports.packName=packName;__exports.packProfit=packProfit;__exports.eachLabel=eachLabel;
+});
+__d("/home/claude/fiyesi/app/staging/brand.mjs",function(__exports,__r){
+// The locked Fiyesi wordmark (B03, design/brand/). Shapes are unchanged; the colour comes from the text colour, so it is cream on dark and kola on light.
+const W='<path d="M20 224V128H5Q0 128 0 123V96Q0 91 5 91H20V57Q20 0 77 0H103Q110 0 110 7V38Q110 45 103 45H83Q65 45 65 65V91H102Q109 91 109 98V121Q109 128 102 128H65V224Q65 230 59 230H26Q20 230 20 224Z" /><path d="M153 11A23 23 0 1 1 152.99 57A23 23 0 1 1 153 11Z M137 91H171Q177 91 177 97V224Q177 230 171 230H137Q131 230 131 224V97Q131 91 137 91Z" /><path d="M201 91H234Q240 91 240 97V155Q240 181 259 181Q279 181 279 155V116Q279 105 288 99L317 78Q327 72 326 86L319 183Q316 235 288 261Q260 286 210 284Q202 284 204 276L211 247Q213 240 221 241Q259 244 270 216Q254 226 235 226Q195 226 195 177V97Q195 91 201 91Z" /><path d="M487 167L391 186Q402 205 424 201Q442 199 457 186Q462 182 466 188L482 209Q486 215 480 219Q456 238 426 238Q391 238 367 216Q345 194 345 163Q345 130 367 108Q389 86 421 86Q450 86 470 106Q490 127 490 155Q490 165 487 167Z M390 151L441 142Q436 126 421 126Q398 126 390 151Z" transform="translate(-7 -3)" /><path d="M605 99L596 129Q594 136 587 133Q569 126 555 127Q541 128 541 136Q541 143 565 149Q613 160 613 190Q613 215 594 228Q576 240 550 238Q526 237 507 227Q501 224 504 217L514 193Q517 187 523 190Q539 198 554 198Q569 198 569 190Q569 183 547 178Q502 167 502 137Q502 115 520 101Q537 87 563 87Q582 87 601 92Q607 94 605 99Z" transform="translate(-5 -3)" /><path d="M650 11A23 23 0 1 1 649.99 57A23 23 0 1 1 650 11Z M634 91H668Q674 91 674 97V224Q674 230 668 230H634Q628 230 628 224V97Q628 91 634 91Z" transform="translate(-3 0)" />';
+const wordmark=(label='Fiyesi',cls='f-wordmark')=>`<svg class="${cls}" viewBox="-20 -20 711 325" role="img" aria-label="${label}" xmlns="http://www.w3.org/2000/svg"><g fill="currentColor" fill-rule="evenodd">${W}</g></svg>`;
+
+__exports.wordmark=wordmark;
+});
 __d("/home/claude/fiyesi/app/staging/dates.mjs",function(__exports,__r){
 // Dates shown to people, in the shop's language and Lagos time. Pidgin uses Nigerian English names.
 const {language}=__r("/home/claude/fiyesi/packages/i18n/index.mjs");
@@ -11246,13 +11485,6 @@ function codeStatus({sentAt,now,wrongTries=0}){
 }
 
 __exports.groupNigerianDigits=groupNigerianDigits;__exports.normalizeNigerianPhone=normalizeNigerianPhone;__exports.codeStatus=codeStatus;__exports.RESEND_SECONDS=RESEND_SECONDS;__exports.CODE_LIFETIME_SECONDS=CODE_LIFETIME_SECONDS;__exports.MAX_TRIES=MAX_TRIES;__exports.authError=authError;
-});
-__d("/home/claude/fiyesi/app/staging/brand.mjs",function(__exports,__r){
-// The locked Fiyesi wordmark (B03, design/brand/). Shapes are unchanged; the colour comes from the text colour, so it is cream on dark and kola on light.
-const W='<path d="M20 224V128H5Q0 128 0 123V96Q0 91 5 91H20V57Q20 0 77 0H103Q110 0 110 7V38Q110 45 103 45H83Q65 45 65 65V91H102Q109 91 109 98V121Q109 128 102 128H65V224Q65 230 59 230H26Q20 230 20 224Z" /><path d="M153 11A23 23 0 1 1 152.99 57A23 23 0 1 1 153 11Z M137 91H171Q177 91 177 97V224Q177 230 171 230H137Q131 230 131 224V97Q131 91 137 91Z" /><path d="M201 91H234Q240 91 240 97V155Q240 181 259 181Q279 181 279 155V116Q279 105 288 99L317 78Q327 72 326 86L319 183Q316 235 288 261Q260 286 210 284Q202 284 204 276L211 247Q213 240 221 241Q259 244 270 216Q254 226 235 226Q195 226 195 177V97Q195 91 201 91Z" /><path d="M487 167L391 186Q402 205 424 201Q442 199 457 186Q462 182 466 188L482 209Q486 215 480 219Q456 238 426 238Q391 238 367 216Q345 194 345 163Q345 130 367 108Q389 86 421 86Q450 86 470 106Q490 127 490 155Q490 165 487 167Z M390 151L441 142Q436 126 421 126Q398 126 390 151Z" transform="translate(-7 -3)" /><path d="M605 99L596 129Q594 136 587 133Q569 126 555 127Q541 128 541 136Q541 143 565 149Q613 160 613 190Q613 215 594 228Q576 240 550 238Q526 237 507 227Q501 224 504 217L514 193Q517 187 523 190Q539 198 554 198Q569 198 569 190Q569 183 547 178Q502 167 502 137Q502 115 520 101Q537 87 563 87Q582 87 601 92Q607 94 605 99Z" transform="translate(-5 -3)" /><path d="M650 11A23 23 0 1 1 649.99 57A23 23 0 1 1 650 11Z M634 91H668Q674 91 674 97V224Q674 230 668 230H634Q628 230 628 224V97Q628 91 634 91Z" transform="translate(-3 0)" />';
-const wordmark=(label='Fiyesi',cls='f-wordmark')=>`<svg class="${cls}" viewBox="-20 -20 711 325" role="img" aria-label="${label}" xmlns="http://www.w3.org/2000/svg"><g fill="currentColor" fill-rule="evenodd">${W}</g></svg>`;
-
-__exports.wordmark=wordmark;
 });
 __d("/home/claude/fiyesi/app/staging/scene-layout.mjs",function(__exports,__r){
 // GENERATED by scripts/illustration/scene_components.py from the component set in design/illustrations/components. Do not edit by hand.
@@ -11843,6 +12075,8 @@ const LOOKS=['av-01','av-02','av-03','av-04','av-05','av-06','av-07','av-08','av
 // bare-hair rows now hold some capped faces, so those map by hand to keep a hijab a hijab and bare hair bare hair.
 const OLD={wrap:['av-01','av-02','av-03'],cap:['av-04','av-05','av-06'],hair:['av-07','av-08','av-07'],hijab:['av-10','av-11','av-11']};
 const normMe=me=>{if(!me||typeof me!=='object')return null;
+ // Decision 148: your own photo, kept on this phone as a small square JPEG (never sent anywhere by the app today).
+ if(typeof me.photo==='string'&&/^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/=]+$/.test(me.photo)&&me.photo.length<120000)return {photo:me.photo};
  if(LOOKS.includes(me.look))return {look:me.look};
  const skin=pick(me.skin,SKINS,'brown'),head=pick(me.head,HEADS,'wrap');
  return {look:OLD[head][SKINS.indexOf(skin)]};};
@@ -11858,8 +12092,8 @@ const roleBadge=role=>BADGE[role]?`<svg class="role-badge rb-${role}" viewBox="0
 // size: 24, 40 or 64. role adds the badge at the corner.
 function avatarHtml({me,name,size=40,role=''}){
  // With the shop picture off (decision 139) everyone shows as initials.
- const n=globalThis.FIYESI_PICTURES===false?null:normMe(me),s=[24,40,64].includes(size)?size:40,badge=role?roleBadge(role):'';
- const body=n?`<span class="dm s${s} av" aria-hidden="true"><img src="${lookSrc(n.look)}" alt="" width="${s}" height="${s}" decoding="async">${badge}</span>`
+ const m=normMe(me),n=globalThis.FIYESI_PICTURES===false&&!m?.photo?null:m,s=[24,40,64].includes(size)?size:40,badge=role?roleBadge(role):'';
+ const body=n?`<span class="dm s${s} av${n.photo?' photo':''}" aria-hidden="true"><img src="${n.photo||lookSrc(n.look)}" alt="" width="${s}" height="${s}" decoding="async">${badge}</span>`
   :`<span class="dm s${s} initial" aria-hidden="true"><b>${esc(initialsOf(name))}</b>${badge}</span>`;
  return body;
 }
@@ -11867,7 +12101,18 @@ const KEY='fiyesi.me';
 const loadMe=(st=globalThis.localStorage)=>{try{const v=st?.getItem(KEY);return v?normMe(JSON.parse(v)):null;}catch{return null;}};
 const saveMe=(me,st=globalThis.localStorage)=>{try{const n=normMe(me);if(n)st?.setItem(KEY,JSON.stringify(n));else st?.removeItem(KEY);}catch{}};
 
-__exports.avatarHtml=avatarHtml;__exports.SKINS=SKINS;__exports.HEADS=HEADS;__exports.OUTFITS=OUTFITS;__exports.LOOKS=LOOKS;__exports.normMe=normMe;__exports.initialsOf=initialsOf;__exports.roleBadge=roleBadge;__exports.loadMe=loadMe;__exports.saveMe=saveMe;
+// Turn a picked file into a small square photo (cover crop, 192 px, JPEG). Rejects anything that is not an image.
+async function photoFromFile(file,size=192){
+ if(!file||!/^image\//.test(file.type||''))throw new Error('not an image');
+ let img;
+ if(globalThis.createImageBitmap){img=await createImageBitmap(file);}
+ else{img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=URL.createObjectURL(file);});}
+ const w=img.width,h=img.height,side=Math.min(w,h),c=document.createElement('canvas');c.width=c.height=size;
+ c.getContext('2d').drawImage(img,(w-side)/2,(h-side)/2,side,side,0,0,size,size);
+ return c.toDataURL('image/jpeg',0.82);
+}
+
+__exports.avatarHtml=avatarHtml;__exports.photoFromFile=photoFromFile;__exports.SKINS=SKINS;__exports.HEADS=HEADS;__exports.OUTFITS=OUTFITS;__exports.LOOKS=LOOKS;__exports.normMe=normMe;__exports.initialsOf=initialsOf;__exports.roleBadge=roleBadge;__exports.loadMe=loadMe;__exports.saveMe=saveMe;
 });
 __d("/home/claude/fiyesi/app/staging/living-home.mjs",function(__exports,__r){
 // The living-shop Home (step 3.2b, decisions 117, 118): the scene at the top, then money in hand as the biggest number.
@@ -11948,13 +12193,15 @@ __d("/home/claude/fiyesi/app/staging/gate.mjs",function(__exports,__r){
 const {codeStatus}=__r("/home/claude/fiyesi/packages/cloud/phone-signin.mjs");
 const {t,language,available}=__r("/home/claude/fiyesi/packages/i18n/index.mjs");
 const {wordmark}=__r("/home/claude/fiyesi/app/staging/brand.mjs");
+const {langButton,langSheet}=__r("/home/claude/fiyesi/app/staging/lang-sheet.mjs");
 const {shopScene}=__r("/home/claude/fiyesi/app/staging/scene.mjs");
 const {timeOfDay}=__r("/home/claude/fiyesi/app/staging/living-home.mjs");
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const arrow=()=>`<span class="f-action-icon" aria-hidden="true">${globalThis.FiyesiIcons.render('arrow-right',20,'owner-icon')}</span>`;
 const pill=()=>{const off=globalThis.navigator?.onLine===false;return `<span class="mode-pill ${off?'off':'on'}" role="status"><i aria-hidden="true"></i>${t(off?'common.offline':'common.online')}</span>`;};
 const ic=(n,s=20,w)=>globalThis.FiyesiIcons?.render(n,s,'owner-icon',w)||'';
-const top=(back='')=>`<div class="g-top">${back?`<button type="button" class="till-close" data-action="${back}" aria-label="Back">${ic('arrow-left',20)}</button>`:wordmark('Fiyesi','f-wordmark g-mark')}${pill()}</div>`;
+// Top of every sign-in screen: back (or the wordmark on Welcome), then the language button and the connection pill (decision 148).
+const top=(back='')=>`<div class="g-top">${back?`<button type="button" class="till-close" data-action="${back}" aria-label="Back">${ic('arrow-left',20)}</button>`:wordmark('Fiyesi','f-wordmark g-mark')}<span class="g-top-r">${langButton('lang-btn on-scene')}${pill()}</span></div>`;
 const err=m=>m?`<p class="g-err" role="alert"><b aria-hidden="true">!</b><span>${esc(m)}</span></p>`:'';
 const main=(label,{busy=false,disabled=false,action='',type='button'}={})=>`<button type="${type}" class="f-main-button" ${action?`data-action="${action}"`:''} ${disabled||busy?'disabled':''}><span>${busy?'<i class="g-spin"></i>':''}${esc(label)}</span>${busy?'':arrow()}</button>`;
 const side=(label,action)=>`<button type="button" class="owner-outline" data-action="${action}">${esc(label)}</button>`;
@@ -11985,9 +12232,10 @@ function gateMessage(a){
  return m?m():'';
 }
 const {lostScreen}=__r("/home/claude/fiyesi/app/staging/phones-view.mjs");
-function renderGate(state){
+function renderGate(state){const h=gateBody(state);return h?h+langSheet(state.langSheet):'';}
+function gateBody(state){
  const a=state.auth;if(!a||a.step==='bypass')return '';
- if(a.step==='welcome')return `<div class="staging-entry f-gate g-welcome ob">${obScene(top(),'hero')}<div class="g-copy"><h1>${esc(t('gate.welcome.title'))}</h1><p>${esc(t('gate.welcome.sub'))}</p>${languageChips()}</div><div class="g-grow"></div><div class="g-acts">${main(t('gate.start'),{action:'auth-start'})}<button type="button" class="g-login-btn" data-action="auth-login"><span>${esc(t('gate.login.hint'))}</span> <b>${esc(t('gate.login'))}</b></button></div><p class="g-offline">${esc(t('gate.offline'))}</p></div>`;
+ if(a.step==='welcome')return `<div class="staging-entry f-gate g-welcome ob">${obScene(top(),'hero')}<div class="g-copy"><h1>${esc(t('gate.welcome.title'))}</h1><p>${esc(t('gate.welcome.sub'))}</p></div><div class="g-grow"></div><div class="g-acts">${main(t('gate.start'),{action:'auth-start'})}<button type="button" class="g-login-btn" data-action="auth-login"><span>${esc(t('gate.login.hint'))}</span> <b>${esc(t('gate.login'))}</b></button></div><p class="g-offline">${esc(t('gate.offline'))}</p></div>`;
  if(a.step==='lost')return lostScreen(top('auth-change'),`<div class="g-grow"></div>${main(t('lost.back'),{action:'auth-change'})}`);
  if(a.step==='phone'){const ok=a.phone.replace(/\D/g,'').length===10,bad=a.kind==='phone-invalid';
   return `<form id="auth-phone-form" class="staging-entry f-gate g-step ob" novalidate>${obScene(top('auth-back'))}<h1>${esc(t(a.intent==='login'?'gate.login.title':'gate.phone.title'))}</h1><p>${esc(t(a.intent==='login'?'gate.login.sub':'gate.phone.sub'))}</p><label for="auth-phone">${esc(t('gate.phone.label'))}</label><div class="g-row"><span class="g-cc">+234</span><input class="text-field" id="auth-phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="803 123 4567" maxlength="14" value="${esc(a.phone)}" ${a.busy?'readonly':''} ${bad?'aria-invalid="true"':''}></div>${err(gateMessage(a))||`<p class="g-help">${esc(t('gate.phone.help'))}</p>`}${a.intent==='login'?`<button type="button" class="f-link" data-action="auth-lost">${esc(t('lost.link'))}</button>`:''}<div class="kb-bar">${main(a.busy?t('gate.phone.sending'):t('gate.phone.send'),{busy:a.busy,disabled:!ok,type:'submit'})}</div></form>`;}
@@ -12278,6 +12526,11 @@ __exports.planState=planState;__exports.planScreen=planScreen;__exports.TRIAL_DA
 });
 __d("/home/claude/fiyesi/app/staging/profile-view.mjs",function(__exports,__r){
 // Profile: who you are in the shop, drawn your way or as initials (never a photo, decisions 19 and 116), and the things that belong to you and this device.
+const {wordmark}=__r("/home/claude/fiyesi/app/staging/brand.mjs");
+const {language,available}=__r("/home/claude/fiyesi/packages/i18n/index.mjs");
+const {markSvg}=__r("/home/claude/fiyesi/app/staging/marks.mjs");
+const {installRow}=__r("/home/claude/fiyesi/app/staging/install.mjs");
+const currentLangName=()=>(available().find(l=>l.code===language())||{name:'English'}).name;
 const {cell,group,groupTitle}=__r("/home/claude/fiyesi/app/staging/ui-parts.mjs");
 const {planLine}=__r("/home/claude/fiyesi/app/staging/plan-view.mjs");
 const {ringModes}=__r("/home/claude/fiyesi/app/staging/buzz.mjs");
@@ -12289,14 +12542,14 @@ const icon=(n,s=20,w)=>globalThis.FiyesiIcons.render(n,s,'owner-icon',w);
 const maskPhone=p=>{const d=String(p||'').replace(/\D/g,'');return d.length>=10?`${d.slice(0,4)} ••• ${d.slice(-4)}`:'';};
 function userAvatar(state,big=false){
  const s=state.snapshot;
- return avatarHtml({me:state.me,name:s.userName,size:big?64:40,role:big?s.role:''});
+ return avatarHtml({me:state.me,name:s.userName,size:big?64:40,role:''});
 }
 // Draw yourself: pick one of twelve drawn faces, or keep your initials.
 function meMaker(state){
  const cur=normMe(state.me);
  // Decision 146: the twelve faces fold behind one row (your face now, Change) so Profile stays short.
- if(!state.meOpen)return `${groupTitle(t('me.title'))}<div class="group me-fold"><button type="button" class="me-now" data-toggle="meOpen" aria-expanded="false"><span class="me-now-face">${avatarHtml({me:cur,name:state.snapshot?.userName||'',size:64})}</span><span class="me-now-text"><b>${cur?esc(t('me.face',{n:LOOKS.indexOf(cur.look)+1})):t('me.none')}</b><small>${cur?t('me.change'):t('me.pick')} · ${t('me.short')}</small></span>${icon('chevron-right',18)}</button></div>`;
- return `${groupTitle(t('me.title'))}<p class="group-note">${t('me.note')}</p><div class="group me-maker"><div class="me-looks" role="radiogroup" aria-label="${esc(t('me.title'))}">${LOOKS.map((id,i)=>`<button type="button" class="me-look" role="radio" data-me-look="${id}" aria-checked="${cur?.look===id}" aria-label="${esc(t('me.face',{n:i+1}))}">${avatarHtml({me:{look:id},name:'',size:64})}</button>`).join('')}</div><div class="me-acts">${cur?`<button type="button" class="me-clear" data-me-clear>${t('me.useinitials')}</button>`:''}<button type="button" class="owner-outline me-done" data-toggle="meOpen" aria-expanded="true">${t('me.done')}</button></div></div>`;
+ if(!state.meOpen)return `${groupTitle(t('me.title'))}<div class="group me-fold"><button type="button" class="me-now" data-toggle="meOpen" aria-expanded="false"><span class="me-now-face">${avatarHtml({me:cur,name:state.snapshot?.userName||'',size:64})}</span><span class="me-now-text"><b>${cur?.photo?t('me.yours'):cur?esc(t('me.face',{n:LOOKS.indexOf(cur.look)+1})):t('me.none')}</b><small>${cur?t('me.change'):t('me.pick')} · ${t('me.short')}</small></span>${icon('chevron-right',18)}</button></div>`;
+ return `${groupTitle(t('me.title'))}<p class="group-note">${t('me.note')}</p><div class="group me-maker"><div class="me-looks" role="radiogroup" aria-label="${esc(t('me.title'))}">${LOOKS.map((id,i)=>`<button type="button" class="me-look" role="radio" data-me-look="${id}" aria-checked="${cur?.look===id}" aria-label="${esc(t('me.face',{n:i+1}))}">${avatarHtml({me:{look:id},name:'',size:64})}</button>`).join('')}</div><label class="owner-outline me-photo">${icon('upload',18)}<span>${t('me.photo')}</span><input type="file" accept="image/*" data-me-photo class="me-file"></label><p class="group-note me-photo-note">${t('me.photo.note')}</p><div class="me-acts">${cur?`<button type="button" class="me-clear" data-me-clear>${t('me.useinitials')}</button>`:''}<button type="button" class="owner-outline me-done" data-toggle="meOpen" aria-expanded="true">${t('me.done')}</button></div></div>`;
 }
 const sw=on=>`<span class="switch${on?' on':''}" aria-hidden="true"><i></i></span>`;
 // Look (decisions 138, 139): the shop picture is the owner's choice for the whole shop; moving is each phone's choice.
@@ -12317,14 +12570,14 @@ function buzzGroup(state){
  return `${groupTitle('Buzz')}<p class="group-note">${owner?t('ui.when-someone-asks-you-to-confirm-a-p-881a'):t('ui.when-the-owner-confirms-or-checks-yo-4389')} ${t('prof.needsnet')}</p><div class="group">${seg}</div>${more}`;
 }
 function aboutScreen(state){
- return `<div class="staging-back-row"><button class="staging-back" data-route="profile" aria-label="${t('ui.back')}">${icon('arrow-left')}</button><h1>${t('ui.about-fiyesi')}</h1></div>
+ return `<div class="staging-back-row"><button class="staging-back" data-route="profile" aria-label="${t('ui.back')}">${icon('arrow-left')}</button><h1>${t('ui.about-fiyesi')}</h1></div><div class="brand-foot about">${wordmark('Fiyesi','f-wordmark brand-mark')}<small>${t('gate.welcome.title')}</small></div>
  ${groupTitle(t('ui.how-your-records-are-kept'))}${group([cell({tone:'ok',tile:'shield-check',title:t('ui.fiyesi-never-holds-customer-money'),sub:t('ui.payments-go-straight-to-your-account-62b6')}),cell({tone:'ok',tile:'lock',title:t('ui.your-records-work-offline'),sub:t('ui.sales-are-saved-on-this-phone-first-47a8')})])}`;
 }
 function profileScreen(state,h){
  const s=state.snapshot,owner=s.role==='owner',name=s.userName||'';
  const actions=[...(owner?[cell({attrs:'data-route="lock"',tile:'lock',title:t('lock.title'),sub:state.lock?.cfg?.hash?t('lock.on'):t('lock.set'),chev:true})]:[]),...(owner?[cell({attrs:'data-route="phones"',tile:'smartphone',title:t('phones.entry.title'),sub:t('phones.entry.sub'),chev:true})]:[]),cell({attrs:'data-action="refresh"',tile:'download',title:t('ui.refresh-shop-records'),sub:t('ui.get-the-latest-from-the-server'),chev:true}),cell({attrs:'data-action="unlock"',tile:'upload',title:t('ui.send-waiting-sales'),sub:t('ui.send-records-saved-on-this-phone-to-a1c4'),chev:true}),state.previewMode?cell({attrs:'data-action="reset-preview"',tile:'undo-2',title:'Start over',sub:t('ui.go-back-to-the-start'),chev:true}):cell({attrs:'data-action="signout"',tone:'owe',tile:'arrow-left',title:t('ui.sign-out'),sub:t('ui.you-can-sign-back-in-with-your-phone-97f8'),chev:true})];
  return `<div class="staging-back-row"><button class="staging-back" data-route="home" aria-label="${t('ui.back')}">${icon('arrow-left')}</button><h1>${t('ui.profile')}</h1></div>
- <section class="prof-hero">${userAvatar(state,true)}
+ <section class="prof-hero"><span class="prof-face">${userAvatar(state,true)}${picturesOn(s)?`<button type="button" class="prof-edit" data-toggle="meOpen" aria-expanded="${!!state.meOpen}" aria-label="${esc(t('me.edit'))}">${icon('pencil',16)}</button>`:''}</span>
  <div><strong class="cust-name">${esc(name||t('ui.add-your-name'))}</strong><div class="tag-row"><span class="f-chip ${owner?'ok':'wait'}">${icon(owner?'shield-check':'user-round',16)}<span>${owner?t('ui.shop-owner'):t('ret.attendant')}</span></span></div>${maskPhone(s.phone)?`<small>${esc(maskPhone(s.phone))}</small>`:''}</div></section>
  <form id="profile-name" class="name-card"><label for="profile-name-input">${t('ui.your-name')}</label><div class="inline-row"><input class="text-field" id="profile-name-input" name="name" type="text" maxlength="60" autocomplete="name" placeholder="${t('ui.how-your-team-sees-you')}" value="${esc(name)}"><button type="submit" class="owner-outline">${t('ui.save')}</button></div></form>
  ${picturesOn(s)?meMaker(state):''}
@@ -12334,9 +12587,9 @@ function profileScreen(state,h){
  ${buzzGroup(state)}
  ${lookGroup(state)}
  ${groupTitle(t('ui.sounds-and-feel'))}${group(feelCells(state))}
- ${groupTitle(t('prof.language'))}<div class="group"><div class="cell-body">${h.lang}</div></div>
- ${groupTitle(t('ui.this-phone'))}${group(actions)}
- ${groupTitle('Fiyesi')}${group([cell({attrs:'data-route="about"',tile:'shield-check',title:t('ui.about-fiyesi'),sub:t('ui.how-your-records-are-kept'),chev:true})])}`;
+ ${groupTitle(t('prof.language'))}${h.lang?group([cell({attrs:'data-lang-open aria-haspopup="dialog"',tile:`<span class="cell-mark" aria-hidden="true">${markSvg('language',30)}</span>`,title:currentLangName(),sub:t('lang.sub'),chev:true})]):''}
+ ${groupTitle(t('ui.this-phone'))}${group([installRow(cell),...actions])}
+ <div class="brand-foot">${wordmark('Fiyesi','f-wordmark brand-mark')}<small>${t('gate.welcome.title')}</small></div>${group([cell({attrs:'data-route="about"',tile:'shield-check',title:t('ui.about-fiyesi'),sub:t('ui.how-your-records-are-kept'),chev:true})])}`;
 }
 
 __exports.userAvatar=userAvatar;__exports.aboutScreen=aboutScreen;__exports.profileScreen=profileScreen;__exports.maskPhone=maskPhone;__exports.picturesOn=picturesOn;__exports.initialsOf=initialsOf;
@@ -12352,6 +12605,7 @@ __exports.STYLES=STYLES;__exports.DEFAULT_STYLE=DEFAULT_STYLE;__exports.modulesF
 });
 __d("/home/claude/fiyesi/app/staging/setup-view.mjs",function(__exports,__r){
 // Account number: where customers send transfers. Set up once, shown on the transfer screens, editable later.
+const {wordmark}=__r("/home/claude/fiyesi/app/staging/brand.mjs");
 const {t}=__r("/home/claude/fiyesi/packages/i18n/index.mjs");
 const {listAccounts,MAX_ACCOUNTS}=__r("/home/claude/fiyesi/app/staging/accounts.mjs");
 const {shopScene}=__r("/home/claude/fiyesi/app/staging/scene.mjs");
@@ -12383,9 +12637,9 @@ function setupScreen(state){
  const st=state.setup||{step:1},d=state.formDraft||{},step=st.step||1,busy=state.busy;
  const dots=`<div class="setup-dots" aria-label="${esc(t('setup.step',{n:step,total:3}))}">${[1,2,3].map(i=>`<i class="${i<=step?'on':''}"></i>`).join('')}</div>`;
  const err=state.error?`<p class="g-err" role="alert"><b aria-hidden="true">!</b><span>${esc(state.error)}</span></p>`:'';
- if(step===1)return `<div class="setup ob">${setupScene(state,1)}${dots}<h1>${t('ui.you-and-your-shop')}</h1><p class="setup-sub">${t('ui.your-name-shows-your-team-who-record-3af6')}</p><form id="setup-name" class="field-stack"><label for="setup-owner">${t('ui.your-name')}</label><input class="text-field big" id="setup-owner" name="ownerName" required minlength="2" maxlength="60" autocomplete="given-name" placeholder="${t('ui.first-name-is-fine')}" value="${esc(d.ownerName||st.ownerName||'')}"><label for="setup-shop">${t('ui.shop-name')}</label><input class="text-field big" id="setup-shop" name="name" required minlength="2" maxlength="60" autocomplete="organization" placeholder="${t('setup.shop.ph')}" value="${esc(d.name||st.name||'')}">${err}<div class="kb-bar"><button class="f-main-button" type="submit"><span>${t('ui.continue')}</span><span class="f-action-icon">${icon('arrow-right')}</span></button></div></form></div>`;
- if(step===2){const cur=st.style||DEFAULT_STYLE;return `<div class="setup ob">${setupScene(state,2)}${dots}<h1>${t('setup.style.title')}</h1><p class="setup-sub">${t('setup.style.sub')}</p><div class="style-list" role="radiogroup" aria-label="${esc(t('setup.style.title'))}">${STYLES.map(x=>`<button type="button" class="style-card${cur===x.id?' on':''}" role="radio" aria-checked="${cur===x.id}" data-setup-style="${x.id}"><span class="srow-tile ok" aria-hidden="true">${icon(x.icon,24,cur===x.id?'fill':'bold')}</span><span class="style-text"><b>${t('setup.style.'+x.id)}</b><small>${t('setup.style.'+x.id+'.sub')}</small></span></button>`).join('')}</div><p class="hint-line">${icon('lock',16)}<span>${t('setup.style.change')}</span></p><div class="kb-bar"><button class="f-main-button" type="button" data-setup-style-next><span>${t('ui.continue')}</span><span class="f-action-icon" aria-hidden="true">${icon('arrow-right')}</span></button></div></div>`;}
- return `<div class="setup ob">${setupScene(state,3)}${dots}<h1>${t('ui.where-should-customers-send-money')}</h1><p class="setup-sub">${t('ui.add-your-shop-account-and-it-shows-w-3269')}</p><form id="setup-account" class="field-stack"><label for="acct-bank">${t('ui.bank')}</label>${bankSelect(d.bank||'')}<label for="acct-number">${t('setup.acct.number')}</label><input class="text-field big mono" id="acct-number" name="number" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="${t('ui.10-digit-account-number')}" value="${esc(groupNumber(d.number||''))}"><input class="text-field big" name="accName" maxlength="60" autocomplete="off" placeholder="${t('ui.account-name-optional')}" value="${esc(d.accName||'')}">${err}<div class="kb-bar"><button class="f-main-button" type="submit" ${busy?'disabled':''}><span>${t('ui.open-my-shop')}</span><span class="f-action-icon">${icon('arrow-right')}</span></button><button type="button" class="link-btn setup-skip" data-setup-skip ${busy?'disabled':''}>${t('ui.skip-for-now')}</button></div></form></div>`;
+ if(step===1)return `<div class="setup ob">${setupScene(state,1)}<div class="setup-brand">${wordmark('Fiyesi','f-wordmark setup-mark')}</div>${dots}<h1>${t('ui.you-and-your-shop')}</h1><p class="setup-sub">${t('ui.your-name-shows-your-team-who-record-3af6')}</p><form id="setup-name" class="field-stack"><label for="setup-owner">${t('ui.your-name')}</label><input class="text-field big" id="setup-owner" name="ownerName" required minlength="2" maxlength="60" autocomplete="given-name" placeholder="${t('ui.first-name-is-fine')}" value="${esc(d.ownerName||st.ownerName||'')}"><label for="setup-shop">${t('ui.shop-name')}</label><input class="text-field big" id="setup-shop" name="name" required minlength="2" maxlength="60" autocomplete="organization" placeholder="${t('setup.shop.ph')}" value="${esc(d.name||st.name||'')}">${err}<div class="kb-bar"><button class="f-main-button" type="submit"><span>${t('ui.continue')}</span><span class="f-action-icon">${icon('arrow-right')}</span></button></div></form></div>`;
+ if(step===2){const cur=st.style||DEFAULT_STYLE;return `<div class="setup ob">${setupScene(state,2)}<div class="setup-brand">${wordmark('Fiyesi','f-wordmark setup-mark')}</div>${dots}<h1>${t('setup.style.title')}</h1><p class="setup-sub">${t('setup.style.sub')}</p><div class="style-list" role="radiogroup" aria-label="${esc(t('setup.style.title'))}">${STYLES.map(x=>`<button type="button" class="style-card${cur===x.id?' on':''}" role="radio" aria-checked="${cur===x.id}" data-setup-style="${x.id}"><span class="srow-tile ok" aria-hidden="true">${icon(x.icon,24,cur===x.id?'fill':'bold')}</span><span class="style-text"><b>${t('setup.style.'+x.id)}</b><small>${t('setup.style.'+x.id+'.sub')}</small></span></button>`).join('')}</div><p class="hint-line">${icon('lock',16)}<span>${t('setup.style.change')}</span></p><div class="kb-bar"><button class="f-main-button" type="button" data-setup-style-next><span>${t('ui.continue')}</span><span class="f-action-icon" aria-hidden="true">${icon('arrow-right')}</span></button></div></div>`;}
+ return `<div class="setup ob">${setupScene(state,3)}<div class="setup-brand">${wordmark('Fiyesi','f-wordmark setup-mark')}</div>${dots}<h1>${t('ui.where-should-customers-send-money')}</h1><p class="setup-sub">${t('ui.add-your-shop-account-and-it-shows-w-3269')}</p><form id="setup-account" class="field-stack"><label for="acct-bank">${t('ui.bank')}</label>${bankSelect(d.bank||'')}<label for="acct-number">${t('setup.acct.number')}</label><input class="text-field big mono" id="acct-number" name="number" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="${t('ui.10-digit-account-number')}" value="${esc(groupNumber(d.number||''))}"><input class="text-field big" name="accName" maxlength="60" autocomplete="off" placeholder="${t('ui.account-name-optional')}" value="${esc(d.accName||'')}">${err}<div class="kb-bar"><button class="f-main-button" type="submit" ${busy?'disabled':''}><span>${t('ui.open-my-shop')}</span><span class="f-action-icon">${icon('arrow-right')}</span></button><button type="button" class="link-btn setup-skip" data-setup-skip ${busy?'disabled':''}>${t('ui.skip-for-now')}</button></div></form></div>`;
 }
 // The dark card shown on transfer screens. Copy and share are plain buttons.
 function payToCard(input,{compact=false}={}){
@@ -13465,6 +13719,7 @@ __exports.profitFor=profitFor;__exports.profitScreen=profitScreen;__exports.PROF
 __d("/home/claude/fiyesi/app/staging/home-view.mjs",function(__exports,__r){
 // Owner Home (Counter): the till display for today's money, a setup ticket while the shop is new,
 // what needs the owner, and what the attendant did while the owner was away.
+const {installCard}=__r("/home/claude/fiyesi/app/staging/install.mjs");
 const {stockStatus}=__r("/home/claude/fiyesi/app/staging/stock-view.mjs");
 const {waitingRequests}=__r("/home/claude/fiyesi/app/staging/returns.mjs");
 const {shapeAttrs}=__r("/home/claude/fiyesi/app/staging/money-status.mjs");
@@ -13551,7 +13806,8 @@ function homeScreen(state,now=Date.now()){
  const tile=(go,mark,title,sub)=>`<button type="button" class="tool-tile" ${go}>${markSvg(mark,30)}<span><b>${esc(title)}</b><small>${esc(sub)}</small></span></button>`;
  const tools=`<div class="home-sec"><h2>${t('home.tools')}</h2><div class="tool-grid">${tile('data-route="closeday"','closeday',t('cash.entry'),done?t('cash.entry.done',{time:clock(done.at)}):t('home.tools.close'))}${tile('data-route="notes"','notes',t('notes.title'),unread?t('notes.new',{count:unread}):t('home.tools.notes'))}${acct?tile('data-route="account"','account',t('home.shopaccount'),`${acct.bank} · ${t('accounts.main')}`):''}${tile('data-route="profit"','profit',t('home.profit'),t('home.tools.profit'))}</div></div>`;
  // Order (page rework, Home): scene and money, Needs you, Finish setting up, Shop tools, While you were away.
- return `${today}${summaryCard(s,now)}${needsBlock}${ticket}${tools}${feedBlock}`;
+ const inst=state.installNudge?installCard():'';
+ return `${today}${summaryCard(s,now)}${needsBlock}${inst}${ticket}${tools}${feedBlock}`;
 }
 
 __exports.greeting=greeting;__exports.bookProgress=bookProgress;__exports.setupSteps=setupSteps;__exports.weekBars=weekBars;__exports.awayFeed=awayFeed;__exports.homeScreen=homeScreen;
@@ -13924,10 +14180,13 @@ __exports.friendly=friendly;
 });
 __d("/home/claude/fiyesi/app/staging/view.mjs",function(__exports,__r){
 const {eachLabel}=__r("/home/claude/fiyesi/app/staging/pricing.mjs");
+const {wordmark}=__r("/home/claude/fiyesi/app/staging/brand.mjs");
 const {MARKS,markSvg}=__r("/home/claude/fiyesi/app/staging/marks.mjs");
 const {listAccounts}=__r("/home/claude/fiyesi/app/staging/accounts.mjs");
 const {showDate}=__r("/home/claude/fiyesi/app/staging/dates.mjs");
 const {renderGate,languagePicker}=__r("/home/claude/fiyesi/app/staging/gate.mjs");
+const {langSheet}=__r("/home/claude/fiyesi/app/staging/lang-sheet.mjs");
+const {installSheet}=__r("/home/claude/fiyesi/app/staging/install.mjs");
 const {stockRoutes,STOCK_ROUTES}=__r("/home/claude/fiyesi/app/staging/stock-view.mjs");
 const {SALES_ROUTES,salesRoutes}=__r("/home/claude/fiyesi/app/staging/sales-view.mjs");
 const {homeScreen,greeting}=__r("/home/claude/fiyesi/app/staging/home-view.mjs");
@@ -13979,7 +14238,8 @@ const homeLead=s=>{if(s.role!=='owner')return '';const waiting=s.sales.filter(x=
  return `<section class="f-lead"><h2 class="f-headline">${esc(headline)}</h2><div class="f-progress" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="${t('ui.book-up-to-date')}"><i style="width:${pct}%"></i></div><p class="f-progress-label">${t('hm.uptodate',{pct})}</p><div class="f-next${pct===100?' is-done':''}"><div><strong>${esc(next[0])}</strong><span>${esc(next[1])}</span></div>${next[2]?`<button type="button" class="f-next-go" data-route="${next[2]}">${next[3]}</button>`:''}</div><button type="button" class="owner-outline f-profit-link" data-route="profit">${t('ui.see-estimated-profit')}</button></section>`;};
 function renderStagingRaw(state){
  const {snapshot:s,route,busy,error,notice}=state;
- const feedback=`<div class="staging-feedback" aria-live="polite" role="status">${busy?t('ui.working'):esc(error||notice||'')}</div>`;
+ // Decision 147: errors stay on the page; a passing notice ("Saved to the shop") is a short toast, not a line left under lists.
+ const feedback=`<div class="staging-feedback" aria-live="polite" role="status">${busy?t('ui.working'):esc(error||'')}</div>${!busy&&!error&&notice?`<div class="toast notice-toast" role="status">${esc(notice)}</div>`:''}`;
  if(!s&&state.signedIn&&route==='create-shop'&&state.salesTools)return `<div class="staging-entry setup-entry">${setupScreen(state)}</div>`;
  if(!s&&state.signedIn&&route==='create-shop')return `<div class="staging-entry">${state.previewMode?'<p class="quiet-copy"></p>':''}<h1>${t('ui.what-is-your-shop-called')}</h1><p>${t('ui.open-your-shop-now-products-come-next')}</p><form id="create-shop" class="field-stack">${field(t('ui.shop-name'),'name','text',`required minlength="2" maxlength="100" value="${esc(state.formDraft?.name||'')}"`)}<button class="f-main-button" type="submit" ${busy?'disabled':''}><span>${t('ui.open-my-shop')}</span><span class="f-action-icon">${icon('arrow-right')}</span></button></form>${feedback}${state.previewMode?secondary('Start over','reset-preview'):secondary(t('ui.sign-out'),'signout')}</div>`;
  if(!s&&state.auth&&state.auth.step!=='email')return renderGate(state);
@@ -13990,7 +14250,7 @@ function renderStagingRaw(state){
  if(told||(route==='intro'&&state.intro))return `<div class="owner-screen intro-mode"><div class="owner-scroll">${told?introScreen({key:told,mode:'told',byName:(s.people||[]).find(p=>p.role==='owner')?.name||''}):introScreen(state.intro)}</div></div>`;
  const nav=s.role==='security'?[['gate',t('gate.title'),'shield-check']]:isStaff?[['checkout',t('nav.sell'),'plus','sell'],['sales',t('nav.mysales'),'receipt-text','sales'],['stock',t('nav.stock'),'package','stock']]:[['home',t('nav.home'),'house','home'],['sales',t('nav.sales'),'receipt-text','sales'],['checkout',t('nav.sell'),'plus','sell'],['stock',t('nav.stock'),'package','stock'],['customers',t('nav.customers'),'users','customers']];
  const cur=id=>route===id||id==='home'&&(route==='phones'||route==='lock')||id==='sales'&&(route==='clock'||route==='notes'||route==='clockconfirm')&&isStaff||id==='home'&&route==='notes'&&!isStaff||id==='home'&&route==='closeday'&&!isStaff||id==='stock'&&state.stockTools&&STOCK_ROUTES.includes(route)||state.salesTools&&(id==='sales'&&(route==='sale'||(route==='closeday'&&isStaff)||route==='receipt'||route==='return'||route==='return-decide')||id==='customers'&&route==='customer');
- const navigation=`<nav class="owner-bottom-nav" data-tabs="${nav.length}" aria-label="${esc(t('nav.label'))}">${nav.map(([id,label,glyph,kind])=>`<button type="button" class="owner-nav-item${cur(id)?' current':''}${kind==='sell'?' owner-nav-sell':''}" data-route="${id}"${kind==='sell'&&!isStaff?` aria-label="${esc(t('nav.makeSale'))}"`:''} ${cur(id)?'aria-current="page"':''}>${kind==='sell'?`<i class="till-btn" aria-hidden="true">${icon('plus',26,'bold')}</i>`:tabIcon(kind)||icon(glyph,24,cur(id)?'fill':'bold')}<span>${label}</span></button>`).join('')}</nav>`;
+ const navigation=`<nav class="owner-bottom-nav" data-tabs="${nav.length}" aria-label="${esc(t('nav.label'))}"><span class="rail-mark" aria-hidden="true">${wordmark('Fiyesi','f-wordmark')}</span>${nav.map(([id,label,glyph,kind])=>`<button type="button" class="owner-nav-item${cur(id)?' current':''}${kind==='sell'?' owner-nav-sell':''}" data-route="${id}"${kind==='sell'&&!isStaff?` aria-label="${esc(t('nav.makeSale'))}"`:''} ${cur(id)?'aria-current="page"':''}>${kind==='sell'?`<i class="till-btn" aria-hidden="true">${icon('plus',26,'bold')}</i>`:tabIcon(kind)||icon(glyph,24,cur(id)?'fill':'bold')}<span>${label}</span></button>`).join('')}</nav>`;
  const saveLine=state.salesTools?statusSheet(state):'';
  // Home's header is the greeting (the shop name is on the signboard, decision 134); other screens keep the shop name.
  const header=`<header class="owner-top">${route==='home'&&s.role==='owner'?`<h1 class="owner-top-hi">${esc(homeGreeting(s))}</h1>`:`<span class="owner-top-context">${esc(s.shopName)}</span>`}${state.salesTools?statusPill(state):''}<button class="owner-top-action owner-profile-avatar" data-route="profile" aria-label="${t('ui.open-profile-and-settings')}">${state.salesTools?userAvatar(state):icon('user-round')}</button></header>`;
@@ -14087,7 +14347,7 @@ function renderStagingRaw(state){
  // Decision 141: a form you fill and save is a task screen. On phones and tablets the tab bar steps aside and Save docks
  // at the bottom, so nothing hides behind it; the back button leads out. Wide screens keep the rail and centre the form.
  const task=!till&&TASK_ROUTES.has(route);
- return `<div class="owner-screen${till?' till-mode':task?' task-mode':''}"><div class="owner-scroll">${till?saveLine:header+saveLine}${state.previewMode?'<p class="quiet-copy"></p>':''}${state.salesTools&&['sales','customers','profit','activity'].includes(route)?withEye(content,state):content}${isStaff&&route==='sales'&&!error&&(notice==='Synced'||state.previewMode&&notice==='Saved')&&!unsynced.length?'':feedback}${isStaff&&route==='sales'&&!error&&(notice==='Synced'||state.previewMode&&notice==='Saved')&&!unsynced.length?`<p class="attendant-sync-confirm" role="status">${state.previewMode?'Saved · Sent to the shop':t('ui.synced-saved-to-shop')}</p>`:''}${queueNote}</div>${route==='checkout'?checkoutDock:state.salesTools||state.stockTools?listDock(state):''}${till?'':navigation}${renderOutcome(state)}</div>`;
+ return langSheet(state.langSheet)+installSheet(state.installSheet)+`<div class="owner-screen${till?' till-mode':task?' task-mode':''}"><div class="owner-scroll">${till?saveLine:header+saveLine}${state.previewMode?'<p class="quiet-copy"></p>':''}${state.salesTools&&['sales','customers','profit','activity'].includes(route)?withEye(content,state):content}${isStaff&&route==='sales'&&!error&&(notice==='Synced'||state.previewMode&&notice==='Saved')&&!unsynced.length?'':feedback}${isStaff&&route==='sales'&&!error&&(notice==='Synced'||state.previewMode&&notice==='Saved')&&!unsynced.length?`<p class="attendant-sync-confirm" role="status">${state.previewMode?'Saved · Sent to the shop':t('ui.synced-saved-to-shop')}</p>`:''}${queueNote}</div>${route==='checkout'?checkoutDock:state.salesTools||state.stockTools?listDock(state):''}${till?'':navigation}${renderOutcome(state)}</div>`;
 }
 
 function cashPlan(state){
@@ -14273,9 +14533,10 @@ __d("/home/claude/fiyesi/app/staging/splash.mjs",function(__exports,__r){
 // scene on Home (or Welcome on the very first open) so the two are one picture. It never makes anyone wait: it gives
 // up if the screen is not ready in time, a tap skips it, and it does not run at all with reduced motion.
 const {shopScene}=__r("/home/claude/fiyesi/app/staging/scene.mjs");
+const {wordmark}=__r("/home/claude/fiyesi/app/staging/brand.mjs");
 const OPEN_MS=1900,FIRST_MS=500,WAIT_MS=1500,GLIDE_MS=300,FADE_MS=220;
 // The scene the splash shows while it waits: the shop for this time of day, shutter down, board blank.
-const splashHtml=(props={})=>`<div class="splash" role="presentation" aria-hidden="true"><div class="splash-scene">${shopScene({time:props.time||'morning',shutter:'down',street:true,sign:props.sign||'',mode:props.mode})}</div></div>`;
+const splashHtml=(props={})=>`<div class="splash" role="presentation" aria-hidden="true"><span class="splash-mark">${wordmark('Fiyesi','f-wordmark')}</span><div class="splash-scene">${shopScene({time:props.time||'morning',shutter:'down',street:true,sign:props.sign||'',mode:props.mode})}</div></div>`;
 // find(): {kind:'home'|'welcome', el, props} once the first screen is drawn, or null while it is not.
 function runSplash({doc=globalThis.document,find,time='morning',sign=''}={}){
  if(!doc?.body||globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return null;
@@ -14302,6 +14563,8 @@ __exports.runSplash=runSplash;__exports.splashHtml=splashHtml;
 });
 __d("/home/claude/fiyesi/app/staging/app.mjs",function(__exports,__r){
 const {groupInput}=__r("/home/claude/fiyesi/app/staging/money-input.mjs");
+const {filterLangs}=__r("/home/claude/fiyesi/app/staging/lang-sheet.mjs");
+const {shouldNudge,noteShown,notNow,promptInstall}=__r("/home/claude/fiyesi/app/staging/install.mjs");
 const {connection,backOnline}=__r("/home/claude/fiyesi/app/staging/connection.mjs");
 const {listAccounts,addAccount,makeMain,removeAccount}=__r("/home/claude/fiyesi/app/staging/accounts.mjs");
 const {saveLineHtml,renderStaging,cashFeedback,canSaveSale,saleOutcome,collectFeedback,collectPlan,splitPlan,splitFeedback,domainSale,chip:saleChip}=__r("/home/claude/fiyesi/app/staging/view.mjs");
@@ -14329,7 +14592,7 @@ const {codeHtml}=__r("/home/claude/fiyesi/app/staging/clock-view.mjs");
 const {cleanNote,unreadFor}=__r("/home/claude/fiyesi/app/staging/notes.mjs");
 const {createFeel}=__r("/home/claude/fiyesi/app/staging/feel.mjs");
 const {applyMask,masks,loadHidden,saveHidden}=__r("/home/claude/fiyesi/app/staging/privacy.mjs");
-const {loadMe,saveMe,normMe}=__r("/home/claude/fiyesi/app/staging/drawn-me.mjs");
+const {photoFromFile,loadMe,saveMe,normMe}=__r("/home/claude/fiyesi/app/staging/drawn-me.mjs");
 const {INTROS,loadSeen,markSeen}=__r("/home/claude/fiyesi/app/staging/intros.mjs");
 const {homeMark,rewardFor}=__r("/home/claude/fiyesi/app/staging/living-home.mjs");
 const {checkAccount,digits,groupNumber}=__r("/home/claude/fiyesi/app/staging/setup-view.mjs");
@@ -14484,7 +14747,11 @@ function mountStaging({root,auth,reader,createController,now=()=>new Date().toIS
   // knows before the shop loads whether to play the splash.
   const pics=state.snapshot?state.snapshot.rules?.shopPicture!==false:null;if(pics!==null){globalThis.FIYESI_PICTURES=pics;try{globalThis.localStorage?.setItem('fiyesi.pictures',pics?'on':'off');}catch{}}
   el?.classList.toggle('still',state.feel?.motion===false);el?.classList.toggle('no-pictures',globalThis.FIYESI_PICTURES===false);};
- function render(reset=false,focusId=''){stillScene();for(const [sel,key] of [['[data-proto-role=owner]','bar.owner'],['[data-proto-role=attendant]','bar.attendant'],['[data-proto-role=security]','bar.security'],['[data-proto-reset]','bar.reset']]){const el=globalThis.document?.querySelector?.(sel);if(el)el.textContent=tr(key);}const seg=globalThis.document?.querySelector?.('.proto-seg');if(seg)seg.setAttribute('aria-label',tr('bar.viewas'));if(root.style)root.style.zoom=TEXT_SCALES[state.textSize]===1?'':String(TEXT_SCALES[state.textSize]);state.online=globalThis.navigator?.onLine!==false;state.effectiveType=globalThis.navigator?.connection?.effectiveType||'';root.classList?.toggle?.('is-offline',state.online===false);if(state.route!=='add-online'&&!(state.route==='clock'&&state.clockScan?.status==='live')){if(stream)stopCamera();if(state.scan.status!=='idle'||state.scan.error)state.scan={status:'idle'};}if(state.error&&state.error!==lastErr)feel.fire('error');lastErr=state.error||'';const position=reset?0:root.querySelector('.owner-scroll')?.scrollTop||0;lockLoad();homeMoment();root.innerHTML=renderStaging(state)+(state.lock.mode?lockOverlay(state,nowMs()):'');const scroll=root.querySelector('.owner-scroll');if(scroll)scroll.scrollTop=position;if(state.hideFigures&&masks(state.route))applyMask(root);if(state.route==='receipt')void paintReceipt();if(state.route==='add-online')attachCamera();if(focusId){const input=root.querySelector(focusId);input?.focus?.({preventScroll:true});if(input?.setSelectionRange)input.setSelectionRange(input.value.length,input.value.length);}}
+ let noticeTimer=null,noticeShown='',nudgeChecked=false;
+ // Decision 149: the install card is decided once per session, on Home, and counted once.
+ const checkNudge=()=>{if(nudgeChecked||state.route!=='home'||!state.snapshot)return;if(shouldNudge(state.snapshot)){nudgeChecked=true;state.installNudge=true;noteShown();}};
+ try{globalThis.addEventListener?.('fiyesi-install-ready',()=>{checkNudge();if(state.installNudge)render();});}catch{}
+ function render(reset=false,focusId=''){checkNudge();stillScene();if(state.notice&&state.notice!==noticeShown){noticeShown=state.notice;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{if(state.notice===noticeShown){state.notice='';noticeShown='';render();}},3200);}else if(!state.notice)noticeShown='';for(const [sel,key] of [['[data-proto-role=owner]','bar.owner'],['[data-proto-role=attendant]','bar.attendant'],['[data-proto-role=security]','bar.security'],['[data-proto-reset]','bar.reset']]){const el=globalThis.document?.querySelector?.(sel);if(el)el.textContent=tr(key);}const seg=globalThis.document?.querySelector?.('.proto-seg');if(seg)seg.setAttribute('aria-label',tr('bar.viewas'));if(root.style)root.style.zoom=TEXT_SCALES[state.textSize]===1?'':String(TEXT_SCALES[state.textSize]);state.online=globalThis.navigator?.onLine!==false;state.effectiveType=globalThis.navigator?.connection?.effectiveType||'';root.classList?.toggle?.('is-offline',state.online===false);if(state.route!=='add-online'&&!(state.route==='clock'&&state.clockScan?.status==='live')){if(stream)stopCamera();if(state.scan.status!=='idle'||state.scan.error)state.scan={status:'idle'};}if(state.error&&state.error!==lastErr)feel.fire('error');lastErr=state.error||'';const position=reset?0:root.querySelector('.owner-scroll')?.scrollTop||0;lockLoad();homeMoment();root.innerHTML=renderStaging(state)+(state.lock.mode?lockOverlay(state,nowMs()):'');const scroll=root.querySelector('.owner-scroll');if(scroll)scroll.scrollTop=position;if(state.hideFigures&&masks(state.route))applyMask(root);if(state.route==='receipt')void paintReceipt();if(state.route==='add-online')attachCamera();if(focusId){const input=root.querySelector(focusId);input?.focus?.({preventScroll:true});if(input?.setSelectionRange)input.setSelectionRange(input.value.length,input.value.length);}}
  function clear(){state.justSignedIn=false;if(state.lock){state.lock.shop=null;state.lock.mode=null;state.lock.cfg=null;}controller?.lock();stopRing();told.clear();Object.assign(state,{alert:null,buzzNote:'',snapshot:null,shops:[],cart:{},queue:[],customerId:'',reviewSaleId:null,route:'home',busy:false,signedIn:false,shopRequestId:null,formDraft:{},productQuery:'',customerQuery:'',customerEditorOpen:false,customerDraft:{name:'',phone:''},pendingCheckoutCustomer:null,paymentMethod:'cash'});}
  function safeFailure(error){state.error=friendly(error?.message)||tr('ui.could-not-finish-this-step');}
  function check(version){if(version!==epoch)throw Error('Session changed');}
@@ -14747,7 +15014,7 @@ async function createProducts(rows,source){
  // One light tap at the touch itself, for the controls that change something. iPhone only allows it here.
  const tactile=b=>b.dataset.product||b.dataset.payment||b.dataset.feelToggle||b.dataset.scan==='snap'||!!b.classList?.contains?.('f-main-button')||!!b.classList?.contains?.('switch')||(b.getAttribute?.('aria-pressed')??null)!==null;
  const click=event=>{
-  if(event.target.classList?.contains?.('sp-scrim')){state.statusSheet=false;render();return;}
+  if(event.target.classList?.contains?.('sp-scrim')){state.statusSheet=false;state.langSheet=false;state.installSheet=false;render();return;}
   const button=event.target.closest('button');if(!button)return;
   if(button.dataset.route&&state.statusSheet)state.statusSheet=false;
   if(tactile(button))feel.press(button.dataset.product?'tick':'soft');else feel.unlock();
@@ -14787,10 +15054,16 @@ async function createProducts(rows,source){
   if(button.dataset.feelToggle){const k=button.dataset.feelToggle;feel.set(k,!feel.prefs[k]);state.feel=feel.prefs;render();if(feel.prefs[k]&&k!=='quiet'){if(k==='stamp')feel.stamp('paid');else feel.fire('success');}return;}
   if(button.dataset.feelTest!==undefined){feel.stamp('paid');return;}
   // Decision 140: the till's fold-outs (ticket lines on phones, the optional customer picker).
-  if(button.dataset.toggle&&['ticketOpen','custOpen','meOpen'].includes(button.dataset.toggle)){const k=button.dataset.toggle;state[k]=!state[k];render(false,k==='custOpen'&&state[k]?'#customer-search':'');return;}
+  if(button.dataset.toggle&&['ticketOpen','custOpen','meOpen'].includes(button.dataset.toggle)){const k=button.dataset.toggle;state[k]=!state[k];render(false,k==='custOpen'&&state[k]?'#customer-search':'');if(k==='meOpen'&&state[k])root.querySelector?.('.me-maker')?.scrollIntoView?.({block:'center'});return;}
   if(button.dataset.statusSheet!==undefined){state.statusSheet=!state.statusSheet;render();return;}
   if(button.dataset.statusClose!==undefined){state.statusSheet=false;render();return;}
-  if(button.dataset.langChip){try{setLang(button.dataset.langChip);}catch{}render();return;}
+  if(button.dataset.langChip){try{setLang(button.dataset.langChip);}catch{}state.langSheet=false;render();return;}
+  if(button.dataset.installOpen!==undefined){state.installSheet=true;render();return;}
+  if(button.dataset.installClose!==undefined){state.installSheet=false;render();return;}
+  if(button.dataset.installLater!==undefined){notNow();state.installNudge=false;render();return;}
+  if(button.dataset.installNow!==undefined){void promptInstall().then(ok=>{state.installSheet=false;if(ok)state.installNudge=false;render();});return;}
+  if(button.dataset.langOpen!==undefined){state.langSheet=true;render();setTimeout(()=>root.querySelector?.('.ls-row[aria-checked="true"]')?.focus?.(),0);return;}
+  if(button.dataset.langClose!==undefined){state.langSheet=false;render();return;}
   if(button.dataset.setupStyle){state.setup={...state.setup,style:button.dataset.setupStyle};render(false);return;}
   if(button.dataset.setupStyleNext!==undefined){state.setup={...state.setup,step:3,style:state.setup.style||DEFAULT_STYLE};render(true,'#acct-number');return;}
   if(button.dataset.setupSkip!==undefined){void createShop({name:state.setup.name,ownerName:state.setup.ownerName,account:null,style:state.setup.style});return;}
@@ -14873,6 +15146,7 @@ async function createProducts(rows,source){
   if(button.dataset.product){feel.play('key');const p=state.snapshot.products.find(p=>p.id===button.dataset.product);if(!p||p.stockOnHand===null)return;const isPack=button.dataset.pack==='1'&&hasPack(p),key=isPack?p.id+PACK_KEY:p.id,per=isPack?p.pack.size:1,quantity=(state.cart[key]||0)+Number(button.dataset.quantity),other=isPack?(state.cart[p.id]||0):(hasPack(p)?(state.cart[p.id+PACK_KEY]||0)*p.pack.size:0);if(Number.isSafeInteger(quantity)&&quantity>=0&&quantity*per+other<=Math.min(p.stockOnHand,100000)){if(quantity)state.cart[key]=quantity;else delete state.cart[key];}render();}
  };
  const change=event=>{const t=event.target;if(t.id==='acct-bank'){state.formDraft={...state.formDraft,bank:t.value};livePay();return;}if(t.id==='unit-select'){const w=root.querySelector('#unit-other-wrap');if(w)w.hidden=t.value!==OTHER_UNIT;return;}if(t.id==='resolve-checked'&&state.resolve){state.resolve.checked=Boolean(t.checked);render();return;}
+  if(t.dataset?.mePhoto!==undefined){const f=t.files?.[0];if(f)photoFromFile(f).then(photo=>{state.me={photo};saveMe(state.me);state.meOpen=false;state.error='';feel.fire('soft');render();}).catch(()=>{state.error=tr('me.photo.err');render();});return;}
   if(t.id==='lang-choice'){try{setLanguage(t.value);}catch{}render();return;}if(t.id==='shop-choice'){void selectShop(t.value);return;}if(t.id==='payment-method'){state.paymentMethod=t.value;state.cashGiven='';}if(t.id==='payment-method'){state.paymentMethod=t.value;render();}};
  // Keep the focused input in place while results update: important for Android IME and caret.
  function updateSearchResults(kind){
@@ -14893,7 +15167,7 @@ async function createProducts(rows,source){
  const livePay=()=>{const stage=root.querySelector('.ob-scene .s3stage');if(!stage||!root.querySelector('#setup-account'))return;const d=state.formDraft||{};stage.querySelector('[data-paycard]')?.remove();
   const html=payCard({bank:d.bank||'',number:d.number||''});if(!html)return;stage.querySelector('.s3pass')?.insertAdjacentHTML('beforebegin',html)??stage.querySelector('[data-sign]').insertAdjacentHTML('beforebegin',html);
   const c=stage.querySelector('[data-paycard]');if(c&&String(d.number||'').length===10&&!state.payPopped){c.classList.add('pop');state.payPopped=true;}if(String(d.number||'').length<10)state.payPopped=false;};
- const input=event=>{const t=event.target;if(t?.getAttribute?.('inputmode')==='decimal')groupInput(t);
+ const input=event=>{const t=event.target;if(t?.dataset?.langSearch!==undefined){filterLangs(root,t.value);return;}if(t?.getAttribute?.('inputmode')==='decimal')groupInput(t);
   if(t.id==='setup-shop'){state.formDraft={...state.formDraft,name:t.value};liveSign(t.value);}
   if(['scan-name','scan-price','scan-stock'].includes(t.id)){state.scan.draft={...(state.scan.draft||{}),[t.id.slice(5)]:t.value};return;}
   if(t.id==='scan-code'){state.scan.typed=cleanCode(t.value);return;}
@@ -14986,7 +15260,7 @@ if(form.id==='paste-products'){void createProducts(parsePasteList(form.elements?
   if(root.querySelector('.home-stage.plain'))return {kind:'none'};
   const home=root.querySelector('.home-stage .shop-scene');if(home&&state.snapshot)return {kind:'home',el:home,props:splashProps(state.snapshot,{now:Date.now(),online:state.online!==false})};
   const w=root.querySelector('.ob-scene.hero .shop-scene');return w?{kind:'welcome',el:w}:null;}});
- return Object.freeze({signIn,selectShop,navigate,act,review,operation,createCheckoutCustomer,discard,createShop,getState:()=>structuredClone(state),dispose:()=>{lockTimers.forEach(clearInterval);stopCamera();stopRing();clearTimeout(againTimer);vv?.removeEventListener?.('resize',fit);vv?.removeEventListener?.('scroll',fit);globalThis.removeEventListener?.('online',net);globalThis.removeEventListener?.('offline',net);epoch++;clearInterval(timer);unsubscribe();clear();root.removeEventListener('click',click);root.removeEventListener('change',change);root.removeEventListener('input',input);root.removeEventListener('submit',submit);root.innerHTML='';}});
+ return Object.freeze({signIn,selectShop,navigate,act,review,operation,createCheckoutCustomer,discard,createShop,getState:()=>structuredClone(state),dispose:()=>{clearTimeout(noticeTimer);lockTimers.forEach(clearInterval);stopCamera();stopRing();clearTimeout(againTimer);vv?.removeEventListener?.('resize',fit);vv?.removeEventListener?.('scroll',fit);globalThis.removeEventListener?.('online',net);globalThis.removeEventListener?.('offline',net);epoch++;clearInterval(timer);unsubscribe();clear();root.removeEventListener('click',click);root.removeEventListener('change',change);root.removeEventListener('input',input);root.removeEventListener('submit',submit);root.innerHTML='';}});
 }
 
 __exports.mountStaging=mountStaging;
