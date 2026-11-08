@@ -1,6 +1,6 @@
 /* Keeps the pilot page and its fonts so Fiyesi opens with no signal after the first visit. It never caches shop records: those live on the phone, not on the network. */
 'use strict';
-const CACHE='fiyesi-pilot-site-v1',PAGE=['./','./index.html','./manifest.webmanifest'];
+const CACHE='fiyesi-pilot-site-v3',PAGE=['./','./index.html','./manifest.webmanifest','./ui/favicon-32.png','./ui/apple-touch-icon.png','./ui/icon-192.png','./ui/icon-512.png','./ui/icon-maskable-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(PAGE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x.startsWith('fiyesi-pilot-site-')&&x!==CACHE).map(x=>caches.delete(x)))).then(()=>self.clients.claim())));
 const FONT=u=>u.hostname==='fonts.googleapis.com'||u.hostname==='fonts.gstatic.com';
