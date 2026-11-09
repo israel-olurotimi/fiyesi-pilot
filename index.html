@@ -15747,7 +15747,12 @@ if(form.id==='paste-products'){void createProducts(parsePasteList(form.elements?
   if(root.querySelector('.home-stage.plain'))return {kind:'none'};
   const home=root.querySelector('.home-stage .shop-scene');if(home&&state.snapshot)return {kind:'home',el:home,props:splashProps(state.snapshot,{now:Date.now(),online:state.online!==false})};
   const w=root.querySelector('.ob-scene.hero .shop-scene');return w?{kind:'welcome',el:w}:null;}});
- return Object.freeze({signIn,selectShop,navigate,act,review,operation,createCheckoutCustomer,discard,createShop,getState:()=>structuredClone(state),dispose:()=>{clearTimeout(noticeTimer);lockTimers.forEach(clearInterval);stopCamera();stopRing();clearTimeout(againTimer);vv?.removeEventListener?.('resize',fit);vv?.removeEventListener?.('scroll',fit);globalThis.removeEventListener?.('online',net);globalThis.removeEventListener?.('offline',net);epoch++;clearInterval(timer);unsubscribe();clear();root.removeEventListener('click',click);root.removeEventListener('change',change);root.removeEventListener('input',input);root.removeEventListener('submit',submit);root.innerHTML='';}});
+ // Decision 157: a phone with a kept sign-in opens straight into its shop, even with no data.
+ async function resume(){let s;try{s=await auth.getSession?.();}catch{return false;}if(!s)return false;const version=epoch;state.busy=true;render();
+  try{const result=await reader.listShops();check(version);state.signedIn=true;state.shops=result.shops;if(!result.shops.length){state.route='create-shop';return true;}await selectShop(result.shops[0].shopId);return true;}
+  catch(error){if(version===epoch)safeFailure(error);return false;}finally{if(version===epoch){state.busy=false;render();}}
+ }
+ return Object.freeze({resume,signIn,selectShop,navigate,act,review,operation,createCheckoutCustomer,discard,createShop,getState:()=>structuredClone(state),dispose:()=>{clearTimeout(noticeTimer);lockTimers.forEach(clearInterval);stopCamera();stopRing();clearTimeout(againTimer);vv?.removeEventListener?.('resize',fit);vv?.removeEventListener?.('scroll',fit);globalThis.removeEventListener?.('online',net);globalThis.removeEventListener?.('offline',net);epoch++;clearInterval(timer);unsubscribe();clear();root.removeEventListener('click',click);root.removeEventListener('change',change);root.removeEventListener('input',input);root.removeEventListener('submit',submit);root.innerHTML='';}});
 }
 
 __exports.mountStaging=mountStaging;
