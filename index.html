@@ -2004,7 +2004,7 @@ body{place-items:start center}
 .guard-done{margin-top:18px;border-top:1px solid var(--f-semantic-border);padding-top:6px}
 .guard-done summary{list-style:none;display:flex;align-items:center;gap:8px;min-height:44px;font-weight:700;cursor:pointer}
 .guard-done summary::-webkit-details-marker{display:none}
-.guard-done summary svg{margin-left:auto;transition:transform var(--f-motion-sheetEnter,.2s) var(--f-ease-out)}
+.guard-done summary svg{margin-left:auto;transition:transform var(--f-motion-sheetEnter) var(--f-ease-out)}
 .guard-done[open] summary svg{transform:rotate(180deg)}
 .guard-count{background:var(--f-semantic-surfaceMuted);border-radius:var(--f-radius-full);padding:1px 9px;font-size:13px;color:var(--f-semantic-textMuted)}
 .gate-done-row{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid var(--f-semantic-border)}
@@ -2027,6 +2027,77 @@ body{place-items:start center}
 }
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .gate-card .gate-acts .owner-outline{width:auto}
+/* Decision 154 (owner's third iPhone test). Notices: a card just above the tab bar, inside the app frame, left-aligned
+   with a small tick; never a pill floating over the money. */
+.toast{position:fixed;left:50%;right:auto;width:min(408px,calc(100% - 32px));transform:translateX(-50%);bottom:calc(104px + env(safe-area-inset-bottom,0px));box-sizing:border-box;margin:0;display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--f-radius-lg);text-align:left;font-size:15px;font-weight:600;line-height:1.4;box-shadow:0 10px 30px -12px var(--f-semantic-text);animation:toast-up var(--f-motion-sheetEnter) var(--f-ease-out)}
+body:has(.task-mode) .toast,body:has(.staging-entry) .toast{bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+.kb-open .toast{bottom:12px}
+.toast-ic{flex:none;width:22px;height:22px;border-radius:var(--f-radius-full);background:var(--f-palette-paprika);position:relative}
+.toast-ic::after{content:"";position:absolute;left:7px;top:4px;width:5px;height:10px;border:solid var(--f-palette-cream);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.toast-text{min-width:0}
+@keyframes toast-up{from{opacity:0;translate:0 8px}to{opacity:1;translate:0 0}}
+@media (prefers-reduced-motion:reduce){.toast{animation:none}}
+@media (min-width:1000px){.toast{bottom:28px}}
+/* A setting with choices: the label sits on its own line and the choices get the full width (never squeezed beside it). */
+.cell:has(>.stock-chips),.cell:has(>.chip-row){display:flex;flex-direction:column;align-items:stretch;gap:10px}
+.cell:has(>.stock-chips)>.cell-title{white-space:normal}
+.cell>.stock-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0}
+/* Keyboard open on a phone: the frame is fixed to the visible area, the page under it cannot scroll. */
+html.kb-open,html.kb-open body{height:100%;overflow:hidden;overscroll-behavior:none}
+html.kb-open .staging-frame{position:fixed;top:var(--vvt,0px);left:0;right:0;margin:0 auto;height:var(--vvh,100dvh)}
+/* Pickers (154): a list choice looks like the fields around it: same height, border and type; a quiet chevron in a soft
+   circle; the real select is kept for the form but not shown. */
+select.pick-native{position:absolute!important;width:1px!important;height:1px!important;min-height:0!important;opacity:0;pointer-events:none;border:0!important;padding:0!important}
+.pick-btn{display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;font-weight:600;color:var(--f-semantic-text)}
+.pick-btn.empty .pick-val{color:var(--f-semantic-textMuted);font-weight:500}
+.pick-val{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pick-chev{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:var(--f-radius-full);background:var(--f-semantic-surfaceMuted);color:var(--f-semantic-text)}
+.pick-btn:active{transform:scale(.99)}
+.pick-sheet{display:flex;flex-direction:column;gap:12px;max-height:min(78%,560px);padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+.pick-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pick-head h2{margin:0;font-size:20px}
+.pick-list{overflow-y:auto;margin:0 -8px;padding:0 8px;display:flex;flex-direction:column}
+.pick-opt{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:54px;padding:0 14px;border:0;border-radius:var(--f-radius-md);background:none;text-align:left;font-size:17px;color:var(--f-semantic-text);cursor:pointer}
+.pick-opt+.pick-opt{box-shadow:0 -1px 0 var(--f-semantic-border)}
+.pick-opt[aria-selected="true"]{background:var(--f-semantic-surfaceMuted);font-weight:700;box-shadow:none}
+.pick-opt[aria-selected="true"]+.pick-opt{box-shadow:none}
+.pick-opt[hidden]{display:none}
+.pick-search{min-height:48px}
+/* Shop accounts (154): the actions line up under the number; Main is a small badge, Remove a quiet link. */
+.acct-row{padding:14px;gap:4px 12px}
+.acct-acts{padding-left:52px;gap:6px 14px}
+.acct-main{display:inline-flex;align-items:center;gap:4px;min-height:28px;padding:0 10px}
+.acct-remove{min-height:40px;padding:0 4px;font-size:14px;font-weight:700;color:var(--f-owe-text);text-decoration:underline;text-underline-offset:3px}
+.acct-acts .acct-btn{min-height:40px;font-size:14px}
+/* Your plan (154): tabs to pick a plan, then one full card: a drawn mark, who it is for, a big price, how often, what you get. */
+.plan-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:var(--f-radius-full);background:var(--f-semantic-surfaceMuted);margin:0 0 12px}
+.plan-tab{position:relative;min-height:44px;border:0;border-radius:var(--f-radius-full);background:none;font-weight:700;font-size:15px;color:var(--f-semantic-textMuted);cursor:pointer}
+.plan-tab[aria-selected="true"]{background:var(--f-semantic-surface);color:var(--f-semantic-text);box-shadow:0 1px 0 var(--f-semantic-border),0 4px 12px -8px var(--f-semantic-text)}
+.plan-tab-dot{position:absolute;top:9px;right:12px;width:7px;height:7px;border-radius:var(--f-radius-full);background:var(--f-palette-paprika)}
+.plan-show{background:var(--f-palette-cream);border:1px solid var(--f-semantic-border);border-radius:var(--f-radius-xl);padding:18px;display:flex;flex-direction:column;gap:14px}
+.plan-top{display:flex;align-items:center;gap:12px}
+.plan-mark{flex:none;display:grid;place-items:center;width:56px;height:56px;border-radius:var(--f-radius-lg);background:var(--f-semantic-surface)}
+.plan-who{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.plan-who b{font-size:21px;font-weight:800;letter-spacing:-.02em}
+.plan-who small{font-size:14px;color:var(--f-semantic-textMuted);line-height:1.35}
+.plan-badge{flex:none;align-self:flex-start;font-size:12px;font-weight:800;padding:4px 10px;border-radius:var(--f-radius-full);background:var(--f-ok-surface);color:var(--f-ok-text)}
+.plan-price{display:flex;align-items:baseline;gap:8px;padding-top:12px;border-top:1px dashed var(--f-semantic-borderStrong)}
+.plan-price b{font-size:40px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1}
+.plan-price span{font-size:15px;color:var(--f-semantic-textMuted);font-weight:600}
+.plan-show .plan-periods{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0}
+.plan-period{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:52px;padding:6px;border:1.5px solid var(--f-semantic-border);border-radius:var(--f-radius-md);background:var(--f-semantic-surface);font-weight:700;font-size:14px;color:var(--f-semantic-text);cursor:pointer}
+.plan-period small{font-size:11px;font-weight:800;color:var(--f-ok-text)}
+.plan-period[aria-pressed="true"]{border-color:var(--f-semantic-text);box-shadow:inset 0 0 0 1px var(--f-semantic-text)}
+.plan-what{margin:2px 0 -4px;font-size:13px;font-weight:800;color:var(--f-semantic-textMuted);text-transform:none}
+.plan-feats{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.plan-feats li{display:flex;gap:10px;align-items:flex-start;font-size:15px;line-height:1.4}
+.plan-tick{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:var(--f-radius-full);background:var(--f-ok-surface);color:var(--f-ok-text);margin-top:1px}
+.plan-show+.f-main-button,.plan-show+.hint-line{margin-top:16px}
+.pick-sheet:has(.pick-search){min-height:min(70%,520px)}
+/* Log out: one clear button at the end of Profile (154). */
+.prof-out{display:flex;flex-direction:column;align-items:stretch;gap:6px;margin:22px 0 6px;text-align:center}
+.prof-out-btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;width:100%;color:var(--f-owe-text);border-color:var(--f-owe-border,var(--f-semantic-borderStrong));font-weight:700}
+.prof-out small{color:var(--f-semantic-textMuted);font-size:13px}
 
 /* Prototype shell only: role switcher above the real staging UI. Not part of the product UI. */
 :root{color-scheme:light}
@@ -2415,6 +2486,49 @@ function groupInput(el){
 }
 
 __exports.groupNaira=groupNaira;__exports.groupInput=groupInput;
+});
+__d("/home/claude/fiyesi/app/staging/picker.mjs",function(__exports,__r){
+// Pickers (decision 154): every list choice in a form looks like the fields around it and opens one calm sheet,
+// the same sheet as Language (148). The real <select> stays in the form, so saving reads it as before.
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const CHEV='<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M5.5 7.5 10 12l4.5-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const TICK='<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="m4.5 10.5 3.5 3.5 7.5-8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const SEARCH_FROM=9;
+const labelOf=sel=>{const id=sel.id,doc=sel.ownerDocument;const l=id&&doc?.querySelector?.(`label[for="${id}"]`);const c=l?.cloneNode?.(true);c?.querySelectorAll?.('.opt').forEach(x=>x.remove());return (c?.textContent||sel.getAttribute('aria-label')||'').trim();};
+const shown=sel=>{const o=sel.options?.[sel.selectedIndex];return {text:o?.textContent||'',empty:!o||o.value===''};};
+// Pure markup, so tests can check it without a browser.
+function pickButton({text,empty,label,id}){return `<button type="button" class="text-field pick-btn${empty?' empty':''}" data-pick-for="${esc(id)}" aria-haspopup="listbox" aria-label="${esc((label?label+': ':'')+text)}"><span class="pick-val">${esc(text)}</span><span class="pick-chev">${CHEV}</span></button>`;}
+function pickSheet({title,options,value,search,placeholder,close}){
+ const rows=options.map(o=>`<button type="button" class="pick-opt" role="option" data-pick-val="${esc(o.value)}" data-pick-text="${esc(o.text.toLowerCase())}" aria-selected="${o.value===value}"><span>${esc(o.text)}</span>${o.value===value?TICK:''}</button>`).join('');
+ return `<div class="sp-scrim pick-scrim" data-pick-close></div><section class="sp-sheet pick-sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="pick-head"><h2>${esc(title)}</h2><button type="button" class="link-btn" data-pick-close>${esc(close)}</button></div>${search?`<input class="text-field pick-search" type="search" autocomplete="off" placeholder="${esc(placeholder)}" data-pick-search>`:''}<div class="pick-list" role="listbox" data-scroll>${rows}</div></section>`;
+}
+function enhancePickers(root,words){
+ for(const sel of root.querySelectorAll?.('select.text-field:not([data-native])')||[]){
+  if(sel.dataset.picked&&sel.nextElementSibling?.classList?.contains('pick-btn'))continue;
+  if(!sel.id)sel.id='pick-'+Math.random().toString(36).slice(2,8);
+  sel.dataset.picked='1';sel.classList.add('pick-native');sel.tabIndex=-1;sel.setAttribute('aria-hidden','true');
+  sel.insertAdjacentHTML('afterend',pickButton({...shown(sel),label:labelOf(sel),id:sel.id}));
+ }
+ const doc=root.ownerDocument;if(!doc||doc.__fiyesiPick)return;doc.__fiyesiPick=true;
+ // Wired once per page; the sheet lives in whichever app frame is showing.
+ const frame=()=>doc.querySelector('.staging-frame')||doc.body;
+ const shut=()=>{frame().querySelectorAll('.pick-scrim,.pick-sheet').forEach(x=>x.remove());};
+ let opener=null;
+ doc.addEventListener('click',e=>{
+  const b=e.target.closest?.('[data-pick-for]');
+  if(b){const sel=doc.getElementById(b.dataset.pickFor);if(!sel)return;e.preventDefault();e.stopPropagation();opener=b;shut();
+   const options=[...sel.options].filter(o=>!o.disabled||o.value!=='').map(o=>({value:o.value,text:o.textContent})).filter(o=>o.value!==''||!sel.required);
+   frame().insertAdjacentHTML('beforeend',pickSheet({title:labelOf(sel)||words.choose,options:options.filter(o=>o.value!==''),value:sel.value,search:options.length>=SEARCH_FROM,placeholder:words.search,close:words.close}));
+   const on=frame().querySelector('.pick-opt[aria-selected="true"]');on?.scrollIntoView?.({block:'center'});(on||frame().querySelector('.pick-opt'))?.focus?.({preventScroll:true});return;}
+  if(e.target.closest?.('[data-pick-close]')){shut();opener?.focus?.({preventScroll:true});return;}
+  const o=e.target.closest?.('.pick-opt');
+  if(o&&opener){const sel=doc.getElementById(opener.dataset.pickFor);shut();if(!sel)return;sel.value=o.dataset.pickVal;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));const b2=doc.querySelector(`[data-pick-for="${sel.id}"]`);if(b2){const s=shown(sel);b2.querySelector('.pick-val').textContent=s.text;b2.classList.toggle('empty',s.empty);b2.focus?.({preventScroll:true});}}
+ },true);
+ doc.addEventListener('input',e=>{if(e.target.dataset?.pickSearch===undefined)return;const q=e.target.value.trim().toLowerCase();for(const o of frame().querySelectorAll('.pick-opt'))o.hidden=!!q&&!o.dataset.pickText.includes(q);});
+ doc.addEventListener('keydown',e=>{if(e.key==='Escape'&&frame().querySelector('.pick-sheet')){shut();opener?.focus?.();}});
+}
+
+__exports.pickButton=pickButton;__exports.pickSheet=pickSheet;__exports.enhancePickers=enhancePickers;__exports.SEARCH_FROM=SEARCH_FROM;
 });
 __d("/home/claude/fiyesi/packages/i18n/i18n.mjs",function(__exports,__r){
 /* Language lookup. English is the base: a missing key always falls back to English, never to a blank.
@@ -4206,6 +4320,21 @@ __exports.default={meta:{name:'English',status:'reviewed'},strings:{
  "gate.flag.title":"Flag this sale",
  "gate.prof.title":"You keep the gate here",
  "gate.prof.sub":"You check sales as people leave. The owner sees your flags.",
+ "pick.search":"Search",
+ "pick.close":"Close",
+ "pick.choose":"Choose",
+ "plan.for.free":"For one person minding the shop",
+ "plan.for.plus":"For a shop with an attendant",
+ "plan.for.business":"For more than one shop",
+ "plan.now.badge":"Your plan",
+ "plan.trial.badge":"Free till {date}",
+ "plan.year.save":"Save ₦6,000",
+ "plan.what":"What you get",
+ "plan.perweek":"a week",
+ "plan.peryear":"a year",
+ "plan.every.week":"Weekly",
+ "plan.every.month":"Monthly",
+ "plan.every.year":"Yearly",
 }};
 
 
@@ -5990,6 +6119,21 @@ __exports.default={meta:{name:'Pidgin',status:'draft'},strings:{
  "gate.flag.title":"Flag this sale",
  "gate.prof.title":"Na you dey watch the gate",
  "gate.prof.sub":"You dey check sales as people dey comot. Owner go see your flags.",
+ "pick.search":"Find",
+ "pick.close":"Close",
+ "pick.choose":"Choose",
+ "plan.for.free":"For one person wey dey mind the shop",
+ "plan.for.plus":"For shop wey get attendant",
+ "plan.for.business":"For pass one shop",
+ "plan.now.badge":"Your plan",
+ "plan.trial.badge":"Free till {date}",
+ "plan.year.save":"Save ₦6,000",
+ "plan.what":"Wetin you go get",
+ "plan.perweek":"every week",
+ "plan.peryear":"every year",
+ "plan.every.week":"Every week",
+ "plan.every.month":"Every month",
+ "plan.every.year":"Every year",
 }};
 
 
@@ -7807,6 +7951,21 @@ __exports.default={meta:{name:'Yorùbá',status:'draft'},strings:{
  "gate.flag.title":"Fi àmì sí títà yìí",
  "gate.prof.title":"Ìwọ ló ń ṣọ́ ẹnu ọ̀nà níbí",
  "gate.prof.sub":"O ń yẹ títà wò bí ènìyàn ṣe ń jáde. Ẹni tó ni ṣọ́ọ̀bù ń rí àmì rẹ.",
+ "pick.search":"Wá",
+ "pick.close":"Pa dé",
+ "pick.choose":"Yàn",
+ "plan.for.free":"Fún ẹni kan tó ń ṣọ́ ṣọ́ọ̀bù",
+ "plan.for.plus":"Fún ṣọ́ọ̀bù tó ní olùtajà",
+ "plan.for.business":"Fún ṣọ́ọ̀bù tó ju ẹyọ kan lọ",
+ "plan.now.badge":"Ètò rẹ",
+ "plan.trial.badge":"Ọ̀fẹ́ títí {date}",
+ "plan.year.save":"Fi ₦6,000 pamọ́",
+ "plan.what":"Ohun tí o máa rí",
+ "plan.perweek":"lọ́sẹ̀",
+ "plan.peryear":"lọ́dún",
+ "plan.every.week":"Lọ́sẹ̀",
+ "plan.every.month":"Lóṣù",
+ "plan.every.year":"Lọ́dún",
 }};
 
 
@@ -9624,6 +9783,21 @@ __exports.default={meta:{name:'Igbo',status:'draft'},strings:{
  "gate.flag.title":"Kaa ahịa a akara",
  "gate.prof.title":"Ị na-eche ọnụ ụzọ ebe a",
  "gate.prof.sub":"Ị na-elele ahịa ka ndị mmadụ na-apụ. Onye nwe ya na-ahụ akara gị.",
+ "pick.search":"Chọọ",
+ "pick.close":"Mechie",
+ "pick.choose":"Họrọ",
+ "plan.for.free":"Maka otu onye na-elekọta ụlọ ahịa",
+ "plan.for.plus":"Maka ụlọ ahịa nwere onye na-ere ahịa",
+ "plan.for.business":"Maka ihe karịrị otu ụlọ ahịa",
+ "plan.now.badge":"Atụmatụ gị",
+ "plan.trial.badge":"N'efu ruo {date}",
+ "plan.year.save":"Chekwaa ₦6,000",
+ "plan.what":"Ihe ị ga-enweta",
+ "plan.perweek":"kwa izu",
+ "plan.peryear":"kwa afọ",
+ "plan.every.week":"Kwa izu",
+ "plan.every.month":"Kwa ọnwa",
+ "plan.every.year":"Kwa afọ",
 }};
 
 
@@ -11441,6 +11615,21 @@ __exports.default={meta:{name:'Hausa',status:'draft'},strings:{
  "gate.flag.title":"Yi wa wannan sayarwa alama",
  "gate.prof.title":"Kai ne mai gadin ƙofa a nan",
  "gate.prof.sub":"Kana duba sayarwa yayin da mutane ke fita. Mai shago yana ganin alamominka.",
+ "pick.search":"Nema",
+ "pick.close":"Rufe",
+ "pick.choose":"Zaɓi",
+ "plan.for.free":"Ga mutum ɗaya mai kula da shago",
+ "plan.for.plus":"Ga shago mai mai sayarwa",
+ "plan.for.business":"Ga shago fiye da ɗaya",
+ "plan.now.badge":"Tsarinka",
+ "plan.trial.badge":"Kyauta har {date}",
+ "plan.year.save":"Ajiye ₦6,000",
+ "plan.what":"Abin da za ka samu",
+ "plan.perweek":"kowane mako",
+ "plan.peryear":"kowace shekara",
+ "plan.every.week":"Kowane mako",
+ "plan.every.month":"Kowane wata",
+ "plan.every.year":"Kowace shekara",
 }};
 
 
@@ -12749,10 +12938,10 @@ function payToCard(input,{compact=false}={}){
 // One list of the shop's accounts, then a form to add another. The first is Main.
 function accountForm(state){
  const list=listAccounts(state.snapshot),d=state.formDraft||{},full=list.length>=MAX_ACCOUNTS;
- const rows=list.length?`<div class="acct-list" role="list">${list.map((a,i)=>`<div class="acct-row" role="listitem"><span class="srow-tile ok" aria-hidden="true">${icon('landmark',20)}</span><span class="acct-text"><b>${groupNumber(a.number)}</b><small>${esc(a.bank)}${a.name?` · ${esc(a.name)}`:''}</small></span><span class="acct-acts">${i===0?`<span class="acct-main">${t('accounts.main')}</span>`:`<button type="button" class="owner-outline acct-btn" data-account-main="${esc(a.number)}">${t('accounts.make')}</button>`}<button type="button" class="owner-outline acct-btn" data-account-remove="${esc(a.number)}" aria-label="${esc(t('accounts.remove.aria',{number:groupNumber(a.number)}))}">${t('ui.remove')}</button></span></div>`).join('')}</div>${list.length>1?`<p class="hint-line">${icon('landmark',16)}<span>${t('accounts.mainhint')}</span></p>`:''}`:'';
+ const rows=list.length?`<div class="acct-list" role="list">${list.map((a,i)=>`<div class="acct-row" role="listitem"><span class="srow-tile ok" aria-hidden="true">${icon('landmark',20)}</span><span class="acct-text"><b>${groupNumber(a.number)}</b><small>${esc(a.bank)}${a.name?` · ${esc(a.name)}`:''}</small></span><span class="acct-acts">${i===0?`<span class="acct-main">${icon('check',14)}${t('accounts.main')}</span>`:`<button type="button" class="owner-outline acct-btn" data-account-main="${esc(a.number)}">${t('accounts.make')}</button>`}<button type="button" class="link-btn acct-remove" data-account-remove="${esc(a.number)}" aria-label="${esc(t('accounts.remove.aria',{number:groupNumber(a.number)}))}">${t('ui.remove')}</button></span></div>`).join('')}</div>${list.length>1?`<p class="hint-line">${icon('landmark',16)}<span>${t('accounts.mainhint')}</span></p>`:''}`:'';
  const err=state.error?`<p class="g-err" role="alert"><b aria-hidden="true">!</b><span>${esc(state.error)}</span></p>`:'';
  if(full)return `${rows}<p class="hint-line">${icon('landmark',16)}<span>${t('accounts.max')}</span></p>`;
- return `${rows}<form id="shop-account" class="field-stack"><label for="acct-bank">${list.length?t('accounts.add'):t('ui.shop-account-for-transfers')} <span class="opt">${list.length?'':t('ui.optional')}</span></label>${bankSelect(d.bank??'')}<input class="text-field mono" id="acct-number" name="number" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="${t('ui.10-digit-account-number')}" value="${esc(groupNumber(d.number??''))}"><input class="text-field" name="accName" maxlength="60" autocomplete="off" placeholder="${t('ui.account-name')}" value="${esc(d.accName??'')}"><p class="hint-line">${icon('landmark',16)}<span>${t('ui.customers-see-this-when-they-pay-by-98e8')}</span></p>${err}<div class="inline-row"><button type="submit" class="f-main-button" ${state.busy?'disabled':''}><span>${t('accounts.add')}</span><span class="f-action-icon" aria-hidden="true">${icon('check')}</span></button></div></form>`;
+ return `${rows}<form id="shop-account" class="field-stack"><label for="acct-bank">${list.length?t('accounts.add'):t('ui.shop-account-for-transfers')}${list.length?'':` <span class="opt">${t('ui.optional')}</span>`}</label>${bankSelect(d.bank??'')}<input class="text-field mono" id="acct-number" name="number" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="${t('ui.10-digit-account-number')}" value="${esc(groupNumber(d.number??''))}"><input class="text-field" name="accName" maxlength="60" autocomplete="off" placeholder="${t('ui.account-name')}" value="${esc(d.accName??'')}"><p class="hint-line">${icon('landmark',16)}<span>${t('ui.customers-see-this-when-they-pay-by-98e8')}</span></p>${err}<div class="inline-row"><button type="submit" class="f-main-button" ${state.busy?'disabled':''}><span>${t('accounts.add')}</span><span class="f-action-icon" aria-hidden="true">${icon('check')}</span></button></div></form>`;
 }
 // The shop account on its own screen: reached from the Home card and Profile.
 function accountScreen(state){
@@ -13484,6 +13673,7 @@ __d("/home/claude/fiyesi/app/staging/plan-view.mjs",function(__exports,__r){
 // A shop is never locked: when a paid plan ends, selling carries on and only the extras pause.
 const {t}=__r("/home/claude/fiyesi/packages/i18n/index.mjs");
 const {showDate}=__r("/home/claude/fiyesi/app/staging/dates.mjs");
+const {markSvg}=__r("/home/claude/fiyesi/app/staging/marks.mjs");
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const icon=(n,s=20,w)=>globalThis.FiyesiIcons.render(n,s,'owner-icon',w);
 const TRIAL_DAYS=30;
@@ -13503,10 +13693,17 @@ function planScreen(state,now=Date.now()){
  const s=state.snapshot,p=planState(s,now),pick=state.planPick||'plus',period=state.planPeriod||'month';
  const head=`<div class="staging-back-row"><button class="staging-back" data-route="profile" aria-label="${t('ui.back')}">${icon('arrow-left')}</button><h1>${t('ui.your-plan')}</h1></div>`;
  const now_=`<section class="plan-now"><span class="plan-now-lab">${p.trial?t('ui.you-are-on'):t('ui.your-plan')}</span><strong>${p.trial?t('ui.plus-free-for-now'):esc((PLANS.find(x=>x.id===p.id)||PLANS[0]).name)}</strong>${p.trial?`<div class="plan-days"><b>${p.daysLeft}</b><span>${t('plan.daysleft',{count:p.daysLeft})}<br>${t('plan.until',{date:esc(p.ends)})}</span></div><div class="plan-bar"><i style="width:${Math.round((TRIAL_DAYS-p.daysLeft)*100/TRIAL_DAYS)}%"></i></div>`:''}<p>${icon('shield-check',16,'fill')}<span>${t('ui.selling-and-your-records-stay-free-a-f9a6')}</span></p></section>`;
- const cards=PLANS.map(x=>`<button type="button" class="plan-card${pick===x.id?' on':''}" data-plan-pick="${x.id}" aria-pressed="${pick===x.id}"><div class="pc-head"><span class="pc-name">${x.name}${x.id==='plus'?' <em>'+t('ui.best-for-a-shop-with-an-attendant')+'</em>':''}</span><span class="pc-price"><b>${x.price}</b><small>${x.per}</small></span></div>${x.alt?`<small class="pc-alt">${x.alt}</small>`:''}<ul>${x.lines.map(l=>`<li>${icon('check',14)}<span>${l}</span></li>`).join('')}</ul></button>`).join('');
- const periods=pick==='plus'?`<div class="plan-periods" role="group" aria-label="${t('ui.how-often-you-pay')}">${PERIODS.map(([k,l])=>`<button type="button" class="stock-chip" data-plan-period="${k}" aria-pressed="${period===k}">${t(l)}</button>`).join('')}</div>`:'';
+ // One plan at a time (154): pick Free, Plus or Business; the card shows who it is for, the price, and what you get.
+ const MARK={free:'kiosk',plus:'team',business:'supervisor'},FOR={free:'plan.for.free',plus:'plan.for.plus',business:'plan.for.business'};
+ const PRICE={week:['₦800','plan.perweek'],month:['₦3,000','plan.permonth'],year:['₦30,000','plan.peryear']};
+ const tabs=`<div class="plan-tabs" role="tablist" aria-label="${esc(t('ui.plans'))}">${PLANS.map(x=>`<button type="button" role="tab" class="plan-tab" data-plan-pick="${x.id}" aria-selected="${pick===x.id}">${esc(x.name)}${p.id===x.id?'<i class="plan-tab-dot" aria-hidden="true"></i>':''}</button>`).join('')}</div>`;
+ const x=PLANS.find(y=>y.id===pick)||PLANS[1],mine=p.id===x.id;
+ const [price,per]=x.id==='plus'?[PRICE[period][0],t(PRICE[period][1])]:[x.price,x.per];
+ const badge=mine?`<span class="plan-badge">${p.trial?esc(t('plan.trial.badge',{date:p.ends})):esc(t('plan.now.badge'))}</span>`:'';
+ const periods=x.id==='plus'?`<div class="plan-periods" role="group" aria-label="${t('ui.how-often-you-pay')}">${PERIODS.map(([k])=>`<button type="button" class="plan-period" data-plan-period="${k}" aria-pressed="${period===k}">${t('plan.every.'+k)}${k==='year'?`<small>${t('plan.year.save')}</small>`:''}</button>`).join('')}</div>`:'';
+ const card=`<section class="plan-show" aria-live="polite"><div class="plan-top"><span class="plan-mark" aria-hidden="true">${markSvg(MARK[x.id],40)}</span><span class="plan-who"><b>${esc(x.name)}</b><small>${t(FOR[x.id])}</small></span>${badge}</div><div class="plan-price"><b>${price}</b><span>${esc(per)}</span></div>${periods}<p class="plan-what">${t('plan.what')}</p><ul class="plan-feats">${x.lines.map(l=>`<li><span class="plan-tick" aria-hidden="true">${icon('check',14)}</span><span>${l}</span></li>`).join('')}</ul></section>`;
  const cta=pick==='free'?`<p class="hint-line">${icon('info',16,'fill')}<span>${t('ui.when-the-trial-ends-you-move-to-free-e05f')}</span></p>`:`<button type="button" class="f-main-button" data-plan-choose="${pick}"><span>${t('plan.keep',{name:pick==='plus'?'Plus':'Business'})}</span><span class="f-action-icon" aria-hidden="true">${icon('arrow-right')}</span></button><p class="hint-line">${icon('bell',16,'fill')}<span>${t('ui.nothing-is-charged-now-we-remind-you-9c5c')}</span></p>`;
- return `${head}${now_}<h2 class="plan-h">${t('ui.plans')}</h2><div class="plan-list">${cards}</div>${periods}${cta}`;
+ return `${head}${now_}<h2 class="plan-h">${t('ui.plans')}</h2>${tabs}${card}${cta}`;
 }
 
 __exports.planState=planState;__exports.planScreen=planScreen;__exports.TRIAL_DAYS=TRIAL_DAYS;__exports.PERIODS=PERIODS;__exports.planLine=planLine;__exports.PLANS=PLANS;
@@ -13562,20 +13759,23 @@ function aboutScreen(state){
 }
 function profileScreen(state,h){
  const s=state.snapshot,owner=s.role==='owner',guard=s.role==='security',name=s.userName||'';
- const actions=[...(owner?[cell({attrs:'data-route="lock"',tile:'lock',title:t('lock.title'),sub:state.lock?.cfg?.hash?t('lock.on'):t('lock.set'),chev:true})]:[]),...(owner?[cell({attrs:'data-route="phones"',tile:'smartphone',title:t('phones.entry.title'),sub:t('phones.entry.sub'),chev:true})]:[]),cell({attrs:'data-action="refresh"',tile:'download',title:t('ui.refresh-shop-records'),sub:t('ui.get-the-latest-from-the-server'),chev:true}),cell({attrs:'data-action="unlock"',tile:'upload',title:t('ui.send-waiting-sales'),sub:t('ui.send-records-saved-on-this-phone-to-a1c4'),chev:true}),cell({attrs:'data-action="signout"',tone:'owe',tile:'arrow-left',title:t('ui.sign-out'),sub:t('ui.you-can-sign-back-in-with-your-phone-97f8'),chev:true})];
+ const actions=[...(owner?[cell({attrs:'data-route="lock"',tile:'lock',title:t('lock.title'),sub:state.lock?.cfg?.hash?t('lock.on'):t('lock.set'),chev:true})]:[]),...(owner?[cell({attrs:'data-route="phones"',tile:'smartphone',title:t('phones.entry.title'),sub:t('phones.entry.sub'),chev:true})]:[]),cell({attrs:'data-action="refresh"',tile:'download',title:t('ui.refresh-shop-records'),sub:t('ui.get-the-latest-from-the-server'),chev:true}),cell({attrs:'data-action="unlock"',tile:'upload',title:t('ui.send-waiting-sales'),sub:t('ui.send-records-saved-on-this-phone-to-a1c4'),chev:true})];
+ // Log out is its own clear button at the end of Profile (154), not a row among the sync tools.
+ const out=`<div class="prof-out"><button type="button" class="owner-outline prof-out-btn" data-action="signout">${icon('sign-out',18)}<span>${t('ui.sign-out')}</span></button><small>${t('ui.you-can-sign-back-in-with-your-phone-97f8')}</small></div>`;
  return `<div class="staging-back-row"><button class="staging-back" data-route="${owner?'home':guard?'gate':'checkout'}" aria-label="${t('ui.back')}">${icon('arrow-left')}</button><h1>${t('ui.profile')}</h1></div>
  <section class="prof-hero"><span class="prof-face">${userAvatar(state,true)}${picturesOn(s)?`<button type="button" class="prof-edit" data-toggle="meOpen" aria-expanded="${!!state.meOpen}" aria-label="${esc(t('me.edit'))}">${icon('pencil',16)}</button>`:''}</span>
  <div><strong class="cust-name">${esc(name||t('ui.add-your-name'))}</strong><div class="tag-row"><span class="f-chip ${owner?'ok':'wait'}">${icon(owner||guard?'shield-check':'user-round',16)}<span>${owner?t('ui.shop-owner'):guard?t('role.security'):t('ret.attendant')}</span></span></div>${maskPhone(s.phone)?`<small>${esc(maskPhone(s.phone))}</small>`:''}</div></section>
  <form id="profile-name" class="name-card"><label for="profile-name-input">${t('ui.your-name')}</label><div class="inline-row"><input class="text-field" id="profile-name-input" name="name" type="text" maxlength="60" autocomplete="name" placeholder="${t('ui.how-your-team-sees-you')}" value="${esc(name)}"><button type="submit" class="owner-outline">${t('ui.save')}</button></div></form>
  ${picturesOn(s)?meMaker(state):''}
  ${groupTitle(s.shopName)}${owner?group([cell({attrs:'data-route="team"',tone:'ok',tile:'users',title:t('ui.team'),sub:h.team,chev:true}),cell({attrs:'data-route="plan"',tone:'wait',tile:'tag',title:t('ui.your-plan'),sub:planLine(s),chev:true}),cell({attrs:'data-route="shop-details"',tile:'package',title:t('ui.shop-details'),sub:t('ui.name-on-receipts-and-your-shop-account'),chev:true}),cell({attrs:'data-route="activity"',tile:'list',title:t('ui.activity'),sub:t('ui.see-who-did-what-in-your-shop-and-when'),chev:true})]):group([guard?cell({tone:'ok',tile:'shield-check',title:t('gate.prof.title'),sub:t('gate.prof.sub')}):cell({tone:'ok',tile:'shield-check',title:t('ui.you-are-an-attendant-here'),sub:t('ui.you-record-sales-the-owner-confirms-c3fd')})])}
+ ${groupTitle(t('ui.this-phone'))}${group([installRow(cell),...actions])}
  ${h.shops}
  ${groupTitle(t('ui.text-size'))}<div class="group"><div class="text-size" role="group" aria-label="${t('ui.text-size')}">${[['normal',t('ui.normal'),16],['large',t('ui.large'),19],['xl',t('ui.extra-large'),22]].map(([k,l,px])=>`<button type="button" data-text-size="${k}" aria-pressed="${(state.textSize||'normal')===k}"><b style="font-size:${px}px">Aa</b><span>${l}</span></button>`).join('')}</div></div>
  ${buzzGroup(state)}
  ${lookGroup(state)}
  ${groupTitle(t('ui.sounds-and-feel'))}${group(feelCells(state))}
  ${groupTitle(t('prof.language'))}${h.lang?group([cell({attrs:'data-lang-open aria-haspopup="dialog"',tile:`<span class="cell-mark" aria-hidden="true">${markSvg('language',30)}</span>`,title:currentLangName(),sub:t('lang.sub'),chev:true})]):''}
- ${groupTitle(t('ui.this-phone'))}${group([installRow(cell),...actions])}
+ ${out}
  <div class="brand-foot">${wordmark('Fiyesi','f-wordmark brand-mark')}<small>${t('gate.welcome.title')}</small></div>${group([cell({attrs:'data-route="about"',tile:'shield-check',title:t('ui.about-fiyesi'),sub:t('ui.how-your-records-are-kept'),chev:true})])}`;
 }
 
@@ -13831,7 +14031,9 @@ function createFeel({win=globalThis,doc=globalThis.document,storage=globalThis.l
   const el=doc.createElement('div');el.className='stamp-overlay';el.setAttribute('aria-hidden','true');el.innerHTML=`<div class="stamp-wrap tone-${def.tone}"><div class="stamp-ring">${stampSvg(def.word,{id:'so'+Date.now()})}</div></div>`;
   doc.body.appendChild(el);win.setTimeout?.(()=>el.remove(),1500);return true;
  }
- function toast(text){if(!doc?.body||!text)return;doc.querySelectorAll?.('.toast').forEach(x=>x.remove());const el=doc.createElement('div');el.className='toast';el.setAttribute('role','status');el.textContent=text;doc.body.appendChild(el);win.setTimeout?.(()=>el.remove(),2200);}
+ // A passing notice (147, 154): a small card that sits just above the tab bar inside the app frame, never over the
+ // middle of the screen. Long lines get more time to read.
+ function toast(text){if(!doc?.body||!text)return;doc.querySelectorAll?.('.toast').forEach(x=>x.remove());const el=doc.createElement('div');el.className='toast';el.setAttribute('role','status');const tick=doc.createElement('span');tick.className='toast-ic';tick.setAttribute('aria-hidden','true');const words=doc.createElement('span');words.className='toast-text';words.textContent=text;el.append?.(tick,words);doc.body.appendChild(el);win.setTimeout?.(()=>el.remove(),Math.min(5000,2200+String(text).length*25));}
  // Buzz alerts follow their own setting (Loud, Buzz only, Quiet), not the sounds switches, because someone is waiting.
  function ring(kind,mode='loud'){
   if(mode==='quiet')return false;unlock();const ask=kind==='ask'||kind==='test',h=ask?'ring':kind==='confirmed'?'cash':'warn';
@@ -14503,7 +14705,7 @@ const homeLead=s=>{if(s.role!=='owner')return '';const waiting=s.sales.filter(x=
 function renderStagingRaw(state){
  const {snapshot:s,route,busy,error,notice}=state;
  // Decision 147: errors stay on the page; a passing notice ("Saved to the shop") is a short toast, not a line left under lists.
- const feedback=`<div class="staging-feedback" aria-live="polite" role="status">${busy?t('ui.working'):esc(error||'')}</div>${!busy&&!error&&notice&&!state.outcome?`<div class="toast notice-toast" role="status">${esc(notice)}</div>`:''}`;
+ const feedback=`<div class="staging-feedback" aria-live="polite" role="status">${busy?t('ui.working'):esc(error||'')}</div>${!busy&&!error&&notice&&!state.outcome?`<div class="toast notice-toast" role="status"><span class="toast-ic" aria-hidden="true"></span><span class="toast-text">${esc(notice)}</span></div>`:''}`;
  if(!s&&state.signedIn&&route==='create-shop'&&state.salesTools)return `<div class="staging-entry setup-entry">${setupScreen(state)}</div>`;
  if(!s&&state.signedIn&&route==='create-shop')return `<div class="staging-entry">${state.previewMode?'<p class="quiet-copy"></p>':''}<h1>${t('ui.what-is-your-shop-called')}</h1><p>${t('ui.open-your-shop-now-products-come-next')}</p><form id="create-shop" class="field-stack">${field(t('ui.shop-name'),'name','text',`required minlength="2" maxlength="100" value="${esc(state.formDraft?.name||'')}"`)}<button class="f-main-button" type="submit" ${busy?'disabled':''}><span>${t('ui.open-my-shop')}</span><span class="f-action-icon">${icon('arrow-right')}</span></button></form>${feedback}${state.previewMode?secondary('Start over','reset-preview'):secondary(t('ui.sign-out'),'signout')}</div>`;
  if(!s&&state.auth&&state.auth.step!=='email')return renderGate(state);
@@ -14828,6 +15030,7 @@ __exports.runSplash=runSplash;__exports.splashHtml=splashHtml;
 });
 __d("/home/claude/fiyesi/app/staging/app.mjs",function(__exports,__r){
 const {groupInput}=__r("/home/claude/fiyesi/app/staging/money-input.mjs");
+const {enhancePickers}=__r("/home/claude/fiyesi/app/staging/picker.mjs");
 const {filterGate}=__r("/home/claude/fiyesi/app/staging/security-view.mjs");
 const {filterLangs}=__r("/home/claude/fiyesi/app/staging/lang-sheet.mjs");
 const {shouldNudge,noteShown,notNow,promptInstall,installWay,shareToInstall}=__r("/home/claude/fiyesi/app/staging/install.mjs");
@@ -15017,7 +15220,7 @@ function mountStaging({root,auth,reader,createController,now=()=>new Date().toIS
  // Decision 149: the install card is decided once per session, on Home, and counted once.
  const checkNudge=()=>{if(nudgeChecked||state.route!=='home'||!state.snapshot)return;if(shouldNudge(state.snapshot)){nudgeChecked=true;state.installNudge=true;noteShown();}};
  try{globalThis.addEventListener?.('fiyesi-install-ready',()=>{checkNudge();if(state.installNudge)render();});}catch{}
- function render(reset=false,focusId=''){checkNudge();stillScene();if(state.notice&&state.notice!==noticeShown){noticeShown=state.notice;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{if(state.notice===noticeShown){state.notice='';noticeShown='';render();}},3200);}else if(!state.notice)noticeShown='';for(const [sel,key] of [['[data-proto-role=owner]','bar.owner'],['[data-proto-role=attendant]','bar.attendant'],['[data-proto-role=security]','bar.security'],['[data-proto-reset]','bar.reset']]){const el=globalThis.document?.querySelector?.(sel);if(el)el.textContent=tr(key);}const seg=globalThis.document?.querySelector?.('.proto-seg');if(seg)seg.setAttribute('aria-label',tr('bar.viewas'));if(root.style)root.style.zoom=TEXT_SCALES[state.textSize]===1?'':String(TEXT_SCALES[state.textSize]);state.online=globalThis.navigator?.onLine!==false;state.effectiveType=globalThis.navigator?.connection?.effectiveType||'';root.classList?.toggle?.('is-offline',state.online===false);if(state.route!=='add-online'&&!(state.route==='clock'&&state.clockScan?.status==='live')){if(stream)stopCamera();if(state.scan.status!=='idle'||state.scan.error)state.scan={status:'idle'};}if(state.error&&state.error!==lastErr)feel.fire('error');lastErr=state.error||'';const position=reset?0:root.querySelector('.owner-scroll')?.scrollTop||0;lockLoad();homeMoment();root.innerHTML=renderStaging(state)+(state.lock.mode?lockOverlay(state,nowMs()):'');const scroll=root.querySelector('.owner-scroll');if(scroll)scroll.scrollTop=position;if(state.hideFigures&&masks(state.route))applyMask(root);if(state.gateFind&&state.snapshot?.role==='security')filterGate(root,state.gateFind);if(state.route==='receipt')void paintReceipt();if(state.route==='add-online')attachCamera();if(focusId){const input=root.querySelector(focusId);input?.focus?.({preventScroll:true});if(input?.setSelectionRange)input.setSelectionRange(input.value.length,input.value.length);}}
+ function render(reset=false,focusId=''){checkNudge();stillScene();if(state.notice&&state.notice!==noticeShown){noticeShown=state.notice;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{if(state.notice===noticeShown){state.notice='';noticeShown='';render();}},3200);}else if(!state.notice)noticeShown='';for(const [sel,key] of [['[data-proto-role=owner]','bar.owner'],['[data-proto-role=attendant]','bar.attendant'],['[data-proto-role=security]','bar.security'],['[data-proto-reset]','bar.reset']]){const el=globalThis.document?.querySelector?.(sel);if(el)el.textContent=tr(key);}const seg=globalThis.document?.querySelector?.('.proto-seg');if(seg)seg.setAttribute('aria-label',tr('bar.viewas'));if(root.style)root.style.zoom=TEXT_SCALES[state.textSize]===1?'':String(TEXT_SCALES[state.textSize]);state.online=globalThis.navigator?.onLine!==false;state.effectiveType=globalThis.navigator?.connection?.effectiveType||'';root.classList?.toggle?.('is-offline',state.online===false);if(state.route!=='add-online'&&!(state.route==='clock'&&state.clockScan?.status==='live')){if(stream)stopCamera();if(state.scan.status!=='idle'||state.scan.error)state.scan={status:'idle'};}if(state.error&&state.error!==lastErr)feel.fire('error');lastErr=state.error||'';const position=reset?0:root.querySelector('.owner-scroll')?.scrollTop||0;lockLoad();homeMoment();root.innerHTML=renderStaging(state)+(state.lock.mode?lockOverlay(state,nowMs()):'');const scroll=root.querySelector('.owner-scroll');if(scroll)scroll.scrollTop=position;if(state.hideFigures&&masks(state.route))applyMask(root);if(state.gateFind&&state.snapshot?.role==='security')filterGate(root,state.gateFind);enhancePickers(root,{search:tr('pick.search'),close:tr('pick.close'),choose:tr('pick.choose')});if(state.route==='receipt')void paintReceipt();if(state.route==='add-online')attachCamera();if(focusId){const input=root.querySelector(focusId);input?.focus?.({preventScroll:true});if(input?.setSelectionRange)input.setSelectionRange(input.value.length,input.value.length);}}
  function clear(){state.justSignedIn=false;if(state.lock){state.lock.shop=null;state.lock.mode=null;state.lock.cfg=null;}controller?.lock();stopRing();told.clear();Object.assign(state,{alert:null,buzzNote:'',snapshot:null,shops:[],cart:{},queue:[],customerId:'',reviewSaleId:null,route:'home',busy:false,signedIn:false,shopRequestId:null,formDraft:{},productQuery:'',customerQuery:'',customerEditorOpen:false,customerDraft:{name:'',phone:''},pendingCheckoutCustomer:null,paymentMethod:'cash'});}
  function safeFailure(error){state.error=friendly(error?.message)||tr('ui.could-not-finish-this-step');}
  function check(version){if(version!==epoch)throw Error('Session changed');}
@@ -15519,8 +15722,12 @@ if(form.id==='paste-products'){void createProducts(parsePasteList(form.elements?
  globalThis.document?.addEventListener?.('visibilitychange',()=>root.classList?.toggle?.('is-hidden-page',globalThis.document.hidden));
  globalThis.addEventListener?.('online',net);globalThis.addEventListener?.('offline',net);globalThis.navigator?.connection?.addEventListener?.('change',net);
  // Keyboard-safe screens: follow the visible area so the main button never hides behind the keyboard.
- const vv=globalThis.visualViewport,fit=()=>{const el=globalThis.document?.documentElement;if(!el)return;const open=vv&&vv.height<(globalThis.innerHeight||0)-80;el.style.setProperty('--vvh',open?Math.round(vv.height)+'px':'');el.classList?.toggle?.('kb-open',Boolean(open));if(open){try{globalThis.scrollTo?.({top:0,left:0,behavior:'instant'});}catch{globalThis.scrollTo?.(0,0);}const f=globalThis.document?.activeElement;if(f&&/^(INPUT|SELECT|TEXTAREA)$/.test(f.tagName))globalThis.requestAnimationFrame?.(()=>f.scrollIntoView?.({block:'nearest',behavior:'instant'}));}};
- const lift=e=>{const t=e.target;if(t?.matches?.('input,select,textarea'))globalThis.setTimeout?.(()=>{try{t.scrollIntoView({block:'center',behavior:'smooth'});}catch{}},320);};
+ // Keyboard (151, 154): the app frame is pinned to exactly what is visible (iOS pans the page under the keyboard), and a
+ // focused field is brought into view by scrolling only the app's own list, never the page.
+ const scroller=el=>el?.closest?.('.owner-scroll,.staging-entry,.setup,.sp-sheet,[data-scroll]');
+ const bring=(f,mode)=>{const box=scroller(f);if(!box||!f.getBoundingClientRect)return;const r=f.getBoundingClientRect(),b=box.getBoundingClientRect(),bar=box.querySelector?.('.kb-bar')?.getBoundingClientRect?.().height||0,room=b.height-bar;const want=mode==='center'?r.top-b.top-(room-r.height)/2:r.bottom>b.top+room-12?r.bottom-(b.top+room-12):r.top<b.top+12?r.top-b.top-12:0;if(Math.abs(want)>2)box.scrollTop+=want;};
+ const vv=globalThis.visualViewport,fit=()=>{const el=globalThis.document?.documentElement;if(!el)return;const open=vv&&vv.height<(globalThis.innerHeight||0)-80;el.style.setProperty('--vvh',open?Math.round(vv.height)+'px':'');el.style.setProperty('--vvt',open?Math.round(vv.offsetTop||0)+'px':'0px');el.classList?.toggle?.('kb-open',Boolean(open));if(open){const f=globalThis.document?.activeElement;if(f&&/^(INPUT|SELECT|TEXTAREA)$/.test(f.tagName))globalThis.requestAnimationFrame?.(()=>bring(f,'nearest'));}};
+ const lift=e=>{const t=e.target;if(t?.matches?.('input,select,textarea'))globalThis.setTimeout?.(()=>bring(t,'center'),320);};
  vv?.addEventListener?.('resize',fit);vv?.addEventListener?.('scroll',fit);root.addEventListener('focusin',lift);
  root.ownerDocument?.addEventListener?.('keydown',e=>{const L=state.lock;if(!L.mode||L.mode==='forgot')return;if(/^\d$/.test(e.key)){e.preventDefault();lockKey(e.key);}else if(e.key==='Backspace'){e.preventDefault();lockKey('back');}});
  root.addEventListener('click',e=>{const a=e.target.closest?.('a[data-remind]');if(!a||!state.snapshot)return;state.reminded={...(state.reminded||{}),[a.dataset.remind]:Date.now()};lsSet('fiyesi.reminded.'+state.snapshot.shopId,state.reminded);setTimeout(()=>render(),400);});
