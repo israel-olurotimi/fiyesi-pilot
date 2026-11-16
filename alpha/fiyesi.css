@@ -482,7 +482,7 @@ button.srow{cursor:pointer}
 .rail-item small{display:block;color:var(--f-semantic-textMuted);font-size:13px;margin-top:2px}
 .avatar{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;font-weight:800;font-size:14px;flex:none}
 .avatar.big{width:64px;height:64px;font-size:22px}
-.hero-meta .avatar{width:24px;height:24px;font-size:10px}
+.hero-meta .avatar{display:inline-grid;place-items:center;width:32px;height:32px;font-size:12px;letter-spacing:-.02em}
 .crow{display:flex;align-items:center;gap:12px;width:100%;margin:0 0 8px;padding:12px 14px;text-align:left;font:inherit;color:inherit;border:1.5px solid var(--f-semantic-border);border-radius:14px;background:var(--f-semantic-surface);min-height:68px;cursor:pointer}
 .crow-main{flex:1;min-width:0;display:grid;gap:2px}
 .crow-main strong{font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -784,6 +784,11 @@ button.cell:active{background:var(--f-semantic-surfaceMuted)}
 .owe-meter{display:grid;gap:6px}
 .owe-hero .margin-bar{height:8px;background:var(--f-semantic-surface)}
 .owe-hero .margin-bar i{background:var(--f-ok-text)}
+/* 165: what is waiting to be checked shows striped beside what is paid; history rows that did not land are struck. */
+.owe-hero .margin-bar{display:flex}.owe-hero .margin-bar i{border-radius:0}.owe-hero .margin-bar i.wait{background:repeating-linear-gradient(135deg,var(--f-wait-text) 0 4px,var(--f-wait-surface) 4px 8px)}
+.owe-wait{display:flex!important;align-items:center;gap:6px;margin-top:4px;color:var(--f-wait-text)}
+.col-tiles{margin-bottom:4px}.srow-amt.struck{text-decoration:line-through;opacity:.7}
+.srow.is-collection .link-btn,.rail-item .link-btn{grid-column:2/-1;justify-self:start;min-height:44px;padding:0;font-weight:800}
 .cash-owing,.cash-change{display:grid;gap:2px;margin:6px 0;padding:14px 16px;border:0;border-radius:var(--f-radius-lg);font-size:15px;line-height:1.4;font-weight:700}
 .cash-owing{background:var(--f-wait-surface);color:var(--f-wait-text)}
 .cash-change{background:var(--f-ok-surface);color:var(--f-ok-text)}
@@ -917,7 +922,7 @@ span.switch{display:block}
 .till-ticket{background:var(--f-counter-paper);border-radius:4px 4px var(--f-radius-lg) var(--f-radius-lg);border-top:5px dotted var(--f-counter-paperRule);box-shadow:var(--f-elev-2);padding:10px 12px 12px;display:flex;flex-direction:column;gap:10px}
 .till-ticket.empty{flex-direction:row;align-items:center;gap:10px;font-size:14px;font-weight:600;color:var(--f-semantic-textMuted);padding:14px 12px}
 .till-ticket.empty svg{display:block}
-.tk-lines{display:flex;flex-direction:column;gap:6px;max-height:118px;overflow:auto}
+.tk-lines{display:flex;flex-direction:column;gap:6px;max-height:172px;overflow:auto}
 .tk-line{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;font-family:var(--f-font-mono);font-size:13px;font-weight:500}
 .tk-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tk-amt{font-variant-numeric:tabular-nums}
@@ -1279,7 +1284,7 @@ span.switch{display:block}
 .phone-confirm h2{margin:0;font-size:1.0625rem}
 .phone-confirm p{margin:0;line-height:1.45}
 .lost-steps{flex-direction:column;margin:12px 0}
-.lost-steps li{min-height:56px;padding:10px 12px;align-items:flex-start}
+.lost-steps li{flex:none;min-height:56px;padding:10px 12px;align-items:flex-start}
 .lost-steps li span{line-height:1.4;font-weight:500;font-size:.9375rem}
 .phone-row .owner-outline{width:auto;flex:none;min-height:44px;padding:0 16px}
 .lock-scrim{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:var(--f-semantic-background);overflow:auto}
@@ -1317,7 +1322,8 @@ span.switch{display:block}
 .gate-top{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
 .gate-amt{margin-left:auto}
 .gate-acts{display:flex;flex-direction:column;gap:8px}
-.clock-btn{width:auto;flex:none;min-height:48px;padding:0 18px}
+.clock-btn{width:auto;flex:none;min-height:48px;padding:0 18px;justify-content:center}
+.clock-btn span:last-child{font-size:16px;font-weight:800;line-height:1.2;color:inherit}
 .remind{margin:14px 0}
 .remind-msg{padding:12px 14px;margin:8px 0 10px;border-radius:var(--f-radius-lg);background:var(--f-semantic-surface);border:1px solid var(--f-semantic-border);line-height:1.5;font-size:.9375rem}
 .remind-acts{display:flex;flex-direction:column;gap:10px;margin-top:10px}
@@ -1385,7 +1391,7 @@ textarea.text-field{resize:vertical;min-height:84px;font:inherit}
 .ms[data-shape=struck]{border:1px solid currentColor}
 .f-chip.ms[data-shape=struck] span,.rt-chip.ms[data-shape=struck] span{text-decoration:line-through}
 .srow-tile.ms[data-shape=struck]{position:relative;overflow:hidden}
-.srow-tile.ms[data-shape=struck]::after{content:'';position:absolute;left:6%;right:6%;top:50%;border-top:2px solid currentColor;transform:rotate(-35deg)}
+
 .rt-status{position:relative;display:flex;align-items:center;justify-content:space-between;min-height:64px}
 .ticket-stamp{display:block;width:104px;margin-right:2px;color:var(--f-ok-text);opacity:.88;transform:rotate(-9deg);pointer-events:none}
 .ticket-stamp svg{display:block;width:100%;height:auto}
@@ -2106,6 +2112,51 @@ select.pick-native{position:absolute!important;width:1px!important;height:1px!im
 .kb-open .ob-scene{height:auto;margin-bottom:0}
 .kb-open .ob-scene .shop-scene{display:none}
 .kb-open .ob-scene .g-top{position:static;padding:max(10px,env(safe-area-inset-top)) var(--obx,20px) 4px}
+
+/* Open tickets on the till (decision 161, Spec 2): a row of chips under the top bar; Hold beside Charge. */
+.tk-row{display:flex;gap:8px;overflow-x:auto;margin:0 0 8px;padding:2px 0 6px;scrollbar-width:none}
+.tk-row::-webkit-scrollbar{display:none}
+.tk-chip{flex:none;display:grid;gap:2px;min-height:48px;max-width:190px;padding:6px 12px;border:1.5px solid var(--f-semantic-borderStrong);border-radius:var(--f-radius-md);background:var(--f-semantic-surface);color:var(--f-semantic-text);font:inherit;text-align:left;cursor:pointer}
+.tk-chip b{font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tk-chip small{font-size:12px;color:var(--f-semantic-textMuted);white-space:nowrap}
+.tk-chip.now{background:var(--f-semantic-action);border-color:var(--f-semantic-action);color:var(--f-semantic-actionText)}
+.tk-chip.now small{color:inherit}
+.tk-old{color:var(--f-semantic-attentionText);font-weight:700}
+.tk-chip.now .tk-old{color:inherit}
+.tk-hold{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:56px;min-height:56px;padding:0 14px;border:1.5px solid var(--f-semantic-borderStrong);border-radius:var(--f-radius-lg);background:var(--f-semantic-surface);color:var(--f-semantic-text);font:inherit;font-size:14px;font-weight:800;cursor:pointer}
+.tk-hold:disabled{opacity:.45;cursor:default}
+@media (max-width:599px){.tk-hold{padding:0}.tk-hold span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
+.tk-bar .till-charge strong{white-space:nowrap}
+.tk-full{margin:6px 0 0;font-size:12px;color:var(--f-semantic-textMuted)}
+.till-elsewhere{display:block;margin-top:4px;font-size:12px;font-weight:700;color:var(--f-semantic-attentionText)}
+.tk-note{display:grid;gap:4px;margin:0 0 8px;padding:10px 12px;border-radius:var(--f-radius-md);background:var(--f-semantic-attentionSurface);color:var(--f-semantic-attentionText)}
+.tk-note .hint-line{margin:0;color:inherit}
+.tk-sheet .field-stack,.tk-sheet{display:grid;gap:10px}
+.tk-sheet h2{margin:0}
+.tk-clear{color:var(--f-semantic-dangerText)}
+.tk-next{width:100%}
+.notice-toast .link-btn{margin-left:auto;color:inherit;font-weight:800}
+/* The Counter print (decision 155): a still 6 px strip along the bottom of the till's top bar, never behind text or money. */
+.till-head.has-print{position:relative;padding-bottom:10px}
+.till-head.has-print::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;box-sizing:border-box;border:1px solid var(--f-palette-kola);border-radius:var(--f-radius-full);background:repeating-linear-gradient(90deg,var(--f-palette-paprika) 0 12px,var(--f-palette-kola) 12px 13.5px,var(--f-palette-cream) 13.5px 24px)}
+/* Add product (Spec 1): the live lines under the carton price and the count. */
+.ap-live{margin:4px 0 0;font-size:14px;font-weight:700;color:var(--f-semantic-textMuted)}
+.ap-live.ok{color:var(--f-semantic-successText)}
+.ap-warn{color:var(--f-semantic-attentionText)}
+.disc-grid .wide{grid-column:1/-1}
+.ap-sub{font-size:12px;font-weight:700;color:var(--f-semantic-textMuted)}
+.ap-live.owe{color:var(--f-semantic-dangerText)}
+.ap-est{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:4px 0 0;font-size:14px;color:var(--f-semantic-textMuted)}
+.ap-est .link-btn{font-weight:800;color:var(--f-semantic-text);text-decoration:underline}
+/* Clear the sale (owner, 16 Nov): at the top of the open ticket, Undo for 10 seconds */
+.tk-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 0 6px;position:sticky;top:0;z-index:1;background:var(--f-counter-paper)}
+.tk-head>span{font-size:14px;font-weight:700;color:var(--f-semantic-textMuted)}
+.tk-clearall{display:inline-flex;align-items:center;gap:6px;min-height:48px;padding:0 14px;border:1.5px solid var(--f-semantic-border);border-radius:var(--f-radius-full);background:var(--f-semantic-surface);color:var(--f-semantic-text);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.tk-clearall:active{opacity:.85}
+/* Narrow phones: the ticket bar gives Charge room for the whole amount */
+@media (max-width:399px){.tk-toggle{padding:0 10px;font-size:14px;gap:4px}.tk-bar .till-charge{padding:0 12px;gap:8px}.tk-bar .till-charge strong{font-size:18px}}
+@media (max-width:419px){.tk-bar .tk-hold~.till-charge{flex-direction:column;align-items:flex-start;justify-content:center;gap:0;padding:0 14px}.tk-bar .tk-hold~.till-charge span{font-size:13px;line-height:1.2;opacity:.85}.tk-bar .tk-hold~.till-charge strong{font-size:19px;line-height:1.15}}
+
 
 /* fonts.css */
 /* One family, Plus Jakarta Sans, for headlines and text (decision 106, 31 Oct 2026: replaces Manrope, which has no naira sign and no Yoruba tone marks). Self-hosted Latin, Latin-ext and Vietnamese subsets; the naira sign sits in the Latin file so it is always there. */

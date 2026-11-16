@@ -6,7 +6,13 @@ const backend=Object.freeze({"url":"https://tnysdaqzcvqsbvzkzeii.supabase.co","p
 __exports.backend=backend;
 });
 __d("packages/sync/http-submit.mjs",function(__exports,__r){
-const codes=new Set(['INVALID_OPERATION','ENTITY_ID_REUSED','RECORD_LIMIT_REACHED','OWING_SALE_REQUIRED','COLLECTION_EXCEEDS_BALANCE','STALE_REVISION','INSUFFICIENT_AVAILABLE_STOCK','EVENT_ID_REUSED','SALE_ID_REUSED','SHOP_ACCESS_DENIED','INVALID_REQUEST','PAYLOAD_TOO_LARGE','SIGN_IN_REQUIRED','IDENTITY_UNAVAILABLE','SALE_SERVICE_UNAVAILABLE','INVALID_SALE','INVALID_SALE_TIME','INVALID_SALE_ITEM','UNKNOWN_CUSTOMER','OWING_REQUIRES_CUSTOMER','PRODUCT_UNAVAILABLE_OR_STOCK_UNKNOWN','SALE_LIMIT_EXCEEDED','INVALID_TRANSITION','SALE_NOT_FOUND','SALE_NOT_PENDING','PAYMENT_CHECK_REQUIRED','ORIGIN_NOT_ALLOWED']);
+const codes=new Set(['INVALID_OPERATION','PRODUCT_NOT_FOUND','ALREADY_CLOCKED_IN','NOT_CLOCKED_IN','ENTRY_NOT_FOUND','ALREADY_CONFIRMED','OWN_CLOCK_IN','NOT_OPEN','BAD_TIME','NOT_WAITING','TOO_SOON','TOO_MANY','BAD_CLOCK_METHOD','BAD_MINUTES','BAD_VALUE','BAD_SHIFT','NOT_ALLOWED','NOTE_NEEDED','ALREADY_MARKED','TOO_LATE','NOT_FLAGGED','COLLECTION_NOT_PENDING','ENTITY_ID_REUSED','RECORD_LIMIT_REACHED','OWING_SALE_REQUIRED','COLLECTION_EXCEEDS_BALANCE','STALE_REVISION','INSUFFICIENT_AVAILABLE_STOCK','EVENT_ID_REUSED','SALE_ID_REUSED','SHOP_ACCESS_DENIED','INVALID_REQUEST','PAYLOAD_TOO_LARGE','SIGN_IN_REQUIRED','IDENTITY_UNAVAILABLE','SALE_SERVICE_UNAVAILABLE','INVALID_SALE','INVALID_SALE_TIME','INVALID_SALE_ITEM','UNKNOWN_CUSTOMER','OWING_REQUIRES_CUSTOMER','PRODUCT_UNAVAILABLE_OR_STOCK_UNKNOWN','SALE_LIMIT_EXCEEDED','INVALID_TRANSITION','SALE_NOT_FOUND','SALE_NOT_PENDING','PAYMENT_CHECK_REQUIRED','ORIGIN_NOT_ALLOWED']);
+// Every operation the server's fiyesi-operation function takes (backend/edge/fiyesi-operation/operation-handler.mjs; a test keeps
+// the two lists the same). Anything else is refused here, before it leaves the phone.
+const SERVER_OPERATIONS=Object.freeze(['create-product','create-customer','collect-owing','check-collection',
+ 'edit-product','restock','count-stock','archive-product','restore-product',
+ 'clock-in','clock-out','confirm-clock','clock-nudge','fix-clock-out','set-clock-method','set-clock-nudge','set-module',
+ 'post-note','notes-seen','set-shift','gate-check','gate-flag','gate-undo','gate-ack','set-gate-show']);
 const error=(status,code)=>({status,body:{code}});
 async function boundedJson(response,maxBytes=16384){
  const reader=response.body?.getReader();if(!reader)throw Error();let size=0;const chunks=[];
@@ -49,7 +55,7 @@ function createHttpSubmit({url,publishableKey,scope,getSession,fetchImpl=globalT
   if(payload.action!==undefined&&!['confirm','cancel'].includes(payload.action))return error(400,'INVALID_REQUEST');
   let session;try{session=await getSession();}catch{return error(401,'SIGN_IN_REQUIRED');}
   if(session?.userId!==bound.userId||typeof session.accessToken!=='string'||! /^[A-Za-z0-9._~-]{12,8192}$/.test(session.accessToken)||session.accessToken.startsWith('sb_'))return error(401,'SIGN_IN_REQUIRED');
-  if(payload.operation!==undefined&&!['create-product','create-customer','collect-owing'].includes(payload.operation))return error(400,'INVALID_REQUEST');
+  if(payload.operation!==undefined&&!SERVER_OPERATIONS.includes(payload.operation))return error(400,'INVALID_REQUEST');
   const route=payload.operation?'fiyesi-operation':payload.action?'fiyesi-transition-sale':'fiyesi-record-sale';
   let response;try{response=await fetchImpl(origin+'/functions/v1/'+route,{method:'POST',credentials:'omit',redirect:'error',cache:'no-store',headers:{apikey:publishableKey,authorization:'Bearer '+session.accessToken,'content-type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(timeoutMs)});}catch{return error(0,'CONNECTION_LOST');}
   let body;try{body=await boundedJson(response);}catch{return error(503,'INVALID_ACKNOWLEDGEMENT');}
@@ -58,7 +64,7 @@ function createHttpSubmit({url,publishableKey,scope,getSession,fetchImpl=globalT
  };
 }
 
-__exports.boundedJson=boundedJson;__exports.publicTransportConfig=publicTransportConfig;__exports.createHttpSubmit=createHttpSubmit;
+__exports.boundedJson=boundedJson;__exports.publicTransportConfig=publicTransportConfig;__exports.createHttpSubmit=createHttpSubmit;__exports.SERVER_OPERATIONS=SERVER_OPERATIONS;
 });
 __d("packages/cloud/phone-signin.mjs",function(__exports,__r){
 /* Phone sign-in helpers: pure, no network. Numbers are Nigerian mobiles only; codes are six digits. */
@@ -140,11 +146,33 @@ const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[8
 const integer=(v,min=0)=>Number.isSafeInteger(v)&&v>=min;
 const text=(v,max)=>typeof v==='string'&&v.trim().length>0&&v.length<=max;
 function snapshot(data,shop,user){
- if(data?.shopId!==shop||data.userId!==user||!text(data.shopName,100)||!['owner','attendant'].includes(data.role)||!integer(data.shopRevision))throw Error('Invalid shop response');
+ if(data?.shopId!==shop||data.userId!==user||!text(data.shopName,100)||!['owner','supervisor','attendant','security'].includes(data.role)||!integer(data.shopRevision))throw Error('Invalid shop response');
  const summary={};for(const name of ['todaySaleCount','todaySalesKobo','todayReceivedKobo','pendingKobo','owingKobo']){if(!integer(data.summary?.[name]))throw Error('Invalid shop totals');summary[name]=data.summary[name];}
- if(data.role==='owner'){const value=data.summary?.estimatedProfitKobo;if(value!==null&&!Number.isSafeInteger(value))throw Error('Invalid profit value');summary.estimatedProfitKobo=value;}
+ // Profit and costs only for the owner, or a supervisor the owner gave Cost and profit (decision 163); never for anyone else.
+ const seesCost=data.role==='owner'||data.role==='supervisor'&&data.permissions?.costProfit===true;
+ if(seesCost){const value=data.summary?.estimatedProfitKobo;if(value!==null&&!Number.isSafeInteger(value))throw Error('Invalid profit value');summary.estimatedProfitKobo=value;}
  if(!Array.isArray(data.products)||data.products.length>500||!Array.isArray(data.sales)||data.sales.length>100||!Array.isArray(data.customers)||data.customers.length>200||!['productsTruncated','salesTruncated','customersTruncated'].every(k=>typeof data[k]==='boolean'))throw Error('Invalid shop records');
- const products=data.products.map(p=>{if(!uuid(p.id)||!text(p.name,160)||!text(p.unit,32)||!integer(p.sellingPriceKobo,1)||p.stockOnHand!==null&&!integer(p.stockOnHand))throw Error('Invalid product');return {id:p.id,name:p.name,unit:p.unit,sellingPriceKobo:p.sellingPriceKobo,stockOnHand:p.stockOnHand};});
+ const products=data.products.map(p=>{if(!uuid(p.id)||!text(p.name,160)||!text(p.unit,32)||!integer(p.sellingPriceKobo,1)||p.stockOnHand!==null&&!integer(p.stockOnHand))throw Error('Invalid product');const pack=p.pack&&integer(p.pack.size,2)&&text(p.pack.unit,32)?{unit:p.pack.unit,size:p.pack.size,priceKobo:integer(p.pack.priceKobo,1)?p.pack.priceKobo:null}:null;
+  const wholesale=p.wholesale&&integer(p.wholesale.minQty,2)&&integer(p.wholesale.priceKobo,1)?{minQty:p.wholesale.minQty,priceKobo:p.wholesale.priceKobo}:null;
+  return {id:p.id,name:p.name,unit:p.unit,sellingPriceKobo:p.sellingPriceKobo,stockOnHand:p.stockOnHand,pack,wholesale,lowStockAt:integer(p.lowStockAt)?p.lowStockAt:5,archived:p.archived===true,buyingCostKobo:seesCost&&integer(p.buyingCostKobo)?p.buyingCostKobo:null};});
+ // Stock history (latest 200) and the reader's own switches (decision 163): kept only when well formed.
+ const stockLog=Array.isArray(data.stockLog)?data.stockLog.slice(0,200).filter(e=>e&&uuid(e.id)&&uuid(e.productId)&&['arrived','count'].includes(e.kind)&&Number.isSafeInteger(e.delta)&&typeof e.at==='string').map(e=>({id:e.id,productId:e.productId,kind:e.kind,delta:e.delta,after:Number.isSafeInteger(e.after)?e.after:null,cameIn:e.cameIn??null,packCount:e.packCount??null,reason:typeof e.reason==='string'?e.reason:'',note:typeof e.note==='string'?e.note:'',at:e.at})):[];
+ // Team records (clock, notes, shifts, the gate). Bounded and checked; the guard's rows only reach a guard, flags only the owner.
+ const when=v=>typeof v==='string'&&v.length<=40?v:null,obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
+ const m=obj(data.modules)?data.modules:{},modules={};
+ for(const k of ['counter','clock','clockConfirm','clockNudge','gate'])if(typeof m[k]==='boolean')modules[k]=m[k];
+ if([5,10,15,30].includes(m.clockNudgeMin))modules.clockNudgeMin=m.clockNudgeMin;
+ if(['code','qr','location'].includes(m.clockMethod))modules.clockMethod=m.clockMethod;
+ if(obj(m.clockPlace)&&Number.isFinite(m.clockPlace.lat)&&Number.isFinite(m.clockPlace.lng)&&[50,100,200].includes(m.clockPlace.radiusM))modules.clockPlace={lat:m.clockPlace.lat,lng:m.clockPlace.lng,radiusM:m.clockPlace.radiusM};
+ if(['status','items','amount'].includes(m.gateShow))modules.gateShow=m.gateShow;
+ const hm=v=>typeof v==='string'&&/^\d\d:\d\d$/.test(v);
+ modules.roster=Object.fromEntries(Object.entries(obj(m.roster)?m.roster:{}).filter(([k,v])=>uuid(k)&&obj(v)&&Array.isArray(v.days)&&v.days.length&&v.days.every(d=>integer(d)&&d<=6)&&hm(v.start)&&hm(v.end)).slice(0,50).map(([k,v])=>[k,{days:[...v.days],start:v.start,end:v.end}]));
+ const attendance=(Array.isArray(data.attendance)?data.attendance:[]).slice(0,300).filter(a=>a&&uuid(a.id)&&uuid(a.userId)&&when(a.inAt)).map(a=>({id:a.id,userId:a.userId,name:text(a.name,60)?a.name:'',inAt:a.inAt,outAt:when(a.outAt),fixed:a.fixed===true,confirmedAt:when(a.confirmedAt),confirmedBy:uuid(a.confirmedBy)?a.confirmedBy:null,nudgedAt:when(a.nudgedAt),nudgeCount:integer(a.nudgeCount)?a.nudgeCount:0}));
+ const notes=(Array.isArray(data.notes)?data.notes:[]).slice(0,100).filter(n=>n&&uuid(n.id)&&uuid(n.byId)&&text(n.text,300)&&when(n.at)).map(n=>({id:n.id,by:n.by==='owner'?'owner':'attendant',byId:n.byId,byName:text(n.byName,60)?n.byName:'',text:n.text,at:n.at,seenBy:(Array.isArray(n.seenBy)?n.seenBy:[]).slice(0,50).filter(x=>x&&uuid(x.userId)&&when(x.at)).map(x=>({userId:x.userId,name:text(x.name,60)?x.name:'',at:x.at}))}));
+ const gateFlags=data.role!=='owner'?[]:(Array.isArray(data.gateFlags)?data.gateFlags:[]).slice(0,50).filter(g=>g&&uuid(g.saleId)&&when(g.at)).map(g=>({saleId:g.saleId,state:'flagged',reason:['items','receipt','paid'].includes(g.reason)?g.reason:'',note:typeof g.note==='string'?g.note.slice(0,200):'',at:g.at,by:uuid(g.by)?g.by:null,items:typeof g.items==='string'?g.items.slice(0,500):'',totalKobo:integer(g.totalKobo)?g.totalKobo:null}));
+ const show=['status','items','amount'].includes(data.gate?.show)?data.gate.show:'status';
+ const gate=data.role!=='security'?null:{show,rows:(Array.isArray(data.gate?.rows)?data.gate.rows:[]).slice(0,20).filter(r=>r&&uuid(r.id)&&when(r.at)).map(r=>{const o={id:r.id,no:typeof r.no==='string'?r.no.slice(0,12):'',at:r.at,paymentStatus:r.paymentStatus,paymentMethod:r.paymentMethod,outstandingKobo:integer(r.outstandingKobo)?r.outstandingKobo:null,gate:obj(r.gate)&&['checked','flagged'].includes(r.gate.state)?{state:r.gate.state,reason:r.gate.reason||'',note:r.gate.note||'',at:r.gate.at,by:r.gate.by,ackAt:r.gate.ackAt??null}:null};if(show!=='status'&&typeof r.items==='string')o.items=r.items.slice(0,500);if(show==='amount'&&integer(r.totalKobo))o.totalKobo=r.totalKobo;return o;})};
+ const permissions=data.permissions&&typeof data.permissions==='object'?Object.fromEntries(Object.entries(data.permissions).filter(([,v])=>typeof v==='boolean')):{};
  const customers=data.customers.map(c=>{if(!uuid(c.id)||!text(c.name,80)||!integer(c.owingKobo))throw Error('Invalid customer');return {id:c.id,name:c.name,owingKobo:c.owingKobo};});
  const sales=data.sales.map(s=>{
   if(!uuid(s.id)||s.customerId!==null&&!uuid(s.customerId)||!integer(s.totalKobo,1)||!['received','pending','owing','manually-reviewed','cancelled'].includes(s.paymentStatus)||!['cash','pos','transfer','owing','split'].includes(s.paymentMethod)||!['held','handed-over','not-released'].includes(s.goodsState)||typeof s.occurredAt!=='string'||s.occurredAt.length>64||!Number.isFinite(Date.parse(s.occurredAt))||!Array.isArray(s.lines)||s.lines.length>50)throw Error('Invalid sale');
@@ -155,7 +183,14 @@ function snapshot(data,shop,user){
   if(s.pendingKobo!==undefined&&(!integer(s.pendingKobo)||s.pendingKobo>s.totalKobo))throw Error('Invalid waiting amount');
   return {id:s.id,payments,pendingKobo:s.pendingKobo??(s.paymentStatus==='pending'?s.totalKobo:0),outstandingKobo:s.outstandingKobo??(s.paymentStatus==='owing'?s.totalKobo:0),customerId:s.customerId,totalKobo:s.totalKobo,paymentStatus:s.paymentStatus,paymentMethod:s.paymentMethod,goodsState:s.goodsState,occurredAt:s.occurredAt,lines};
  });
- return {userId:user,shopId:shop,shopName:data.shopName,role:data.role,shopRevision:data.shopRevision,summary,products,sales,customers,productsTruncated:data.productsTruncated,salesTruncated:data.salesTruncated,customersTruncated:data.customersTruncated};
+ // Collections of owed money (165): received, waiting to be checked, or not received. Waiting ones are still owed, and show
+ // with the payments waiting to be checked.
+ const collections=(Array.isArray(data.collections)?data.collections:[]).slice(0,200).filter(c=>c&&uuid(c.id)&&uuid(c.saleId)&&(c.customerId===null||uuid(c.customerId))&&integer(c.amountKobo,1)&&['cash','transfer','pos'].includes(c.method)&&['received','pending','not-received'].includes(c.status)&&when(c.at))
+  .map(c=>({id:c.id,groupId:uuid(c.groupId)?c.groupId:c.id,saleId:c.saleId,customerId:c.customerId,amountKobo:c.amountKobo,method:c.method,status:c.status,byName:text(c.byName,60)?c.byName:'',checkedByName:text(c.checkedByName,60)?c.checkedByName:'',checkedAt:when(c.checkedAt),note:text(c.note,300)?c.note:'',reason:text(c.reason,300)?c.reason:'',at:c.at}));
+ const waitingOf=id=>collections.filter(c=>c.saleId===id&&c.status==='pending').reduce((n,c)=>n+c.amountKobo,0);
+ for(const sl of sales){const w=waitingOf(sl.id);if(w)sl.collectWaitingKobo=w;}
+ summary.pendingKobo+=collections.filter(c=>c.status==='pending').reduce((n,c)=>n+c.amountKobo,0);
+ return {userId:user,shopId:shop,shopName:data.shopName,role:data.role,permissions,collections,stockLog,modules,attendance,notes,gateFlags,...(gate?{gate}:{}),shopRevision:data.shopRevision,summary,products,sales,customers,productsTruncated:data.productsTruncated,salesTruncated:data.salesTruncated,customersTruncated:data.customersTruncated};
 }
 function createCloudReader(options){
  const {origin,publishableKey,fetchImpl,timeoutMs}=publicTransportConfig(options);const getSession=options.getSession;if(typeof getSession!=='function')throw Error('Session reader required');
@@ -168,7 +203,7 @@ function createCloudReader(options){
  return Object.freeze({
   createShop:async({name,requestId})=>{if(!text(name,100)||name.trim().length<2||!uuid(requestId))throw Error('Enter a shop name');const {data}=await request('/rest/v1/rpc/fiyesi_bootstrap_shop',{p_display_name:name.trim(),p_request_id:requestId});if(!uuid(data))throw Error('Invalid new shop response');return data;},
   snapshot:async shopId=>{if(!uuid(shopId))throw Error('Invalid shop');const {data,userId}=await request('/rest/v1/rpc/fiyesi_dashboard_snapshot',{p_shop:shopId});return snapshot(data,shopId,userId);},
-  listShops:async()=>{const {data}=await request('/rest/v1/fiyesi_memberships?'+new URLSearchParams({select:'shop_id,role,shop:fiyesi_shops(display_name)',status:'eq.active',order:'created_at.asc',limit:'21'}));if(!Array.isArray(data)||data.length>21)throw Error('Invalid shop list');const shops=data.slice(0,20).map(r=>{if(!uuid(r.shop_id)||!['owner','attendant'].includes(r.role)||!text(r.shop?.display_name,100))throw Error('Invalid shop membership');return {shopId:r.shop_id,role:r.role,name:r.shop.display_name};});return {shops,more:data.length>20};}
+  listShops:async()=>{const {data}=await request('/rest/v1/fiyesi_memberships?'+new URLSearchParams({select:'shop_id,role,shop:fiyesi_shops(display_name)',status:'eq.active',order:'created_at.asc',limit:'21'}));if(!Array.isArray(data)||data.length>21)throw Error('Invalid shop list');const shops=data.slice(0,20).map(r=>{if(!uuid(r.shop_id)||!['owner','supervisor','attendant','security'].includes(r.role)||!text(r.shop?.display_name,100))throw Error('Invalid shop membership');return {shopId:r.shop_id,role:r.role,name:r.shop.display_name};});return {shops,more:data.length>20};}
  });
 }
 
@@ -2251,6 +2286,134 @@ __exports.default={meta:{name:'English',status:'reviewed'},strings:{
  "plan.every.month":"Monthly",
  "plan.every.year":"Yearly",
  "plan.stays":"{name} will stay on.",
+ "tk.hold":"Hold",
+ "tk.hold.aria":"Hold this ticket and serve the next customer",
+ "tk.who":"Who is this for?",
+ "tk.who.ph":"Name, if you like",
+ "tk.hold.go":"Hold ticket",
+ "tk.held":"Ticket for {name} is held.",
+ "tk.customer":"Customer {letter}",
+ "tk.now":"Now",
+ "tk.full":"Six tickets are open. Pay or clear one first.",
+ "tk.inother":"{n} in the ticket for {name}",
+ "tk.price":"The price of {name} changed since this ticket was held. New total {total}.",
+ "tk.gone.one":"1 item is no longer sold and was left out.",
+ "tk.gone.other":"{count} items are no longer sold and were left out.",
+ "tk.yesterday":"Yesterday",
+ "tk.next":"Next: {name} · {amount}",
+ "tk.clear":"Clear ticket",
+ "tk.cleared":"Ticket for {name} cleared.",
+ "tk.rename":"Rename",
+ "tk.row":"Open tickets",
+ "tk.menu":"Ticket options for {name}",
+ "tk.logout.one":"1 open ticket will be cleared from this phone.",
+ "tk.logout.other":"{count} open tickets will be cleared from this phone.",
+ "tk.closeday.one":"1 ticket is still open. It is not a sale.",
+ "tk.closeday.other":"{count} tickets are still open. They are not sales.",
+ "tk.renamed":"Name saved.",
+ "ap.unit.q":"How do you sell it one at a time?",
+ "ap.unit.other":"Other",
+ "ap.unit.other.label":"What do you call one?",
+ "ap.price":"Price for one {unit}",
+ "ap.cost":"What one {unit} costs you",
+ "ap.cost.help":"Leave empty if you don't know. Profit shows when this is filled.",
+ "ap.pack.q":"Do you also sell it by the carton or pack?",
+ "ap.pack.yes":"Yes, by the {pack}",
+ "ap.pack.called":"Called",
+ "ap.pack.size":"How many {unit} in one {pack}?",
+ "ap.pack.price":"Price for one {pack}",
+ "ap.pack.each":"= {amount} a {unit}",
+ "ap.pack.about":"= about {amount} a {unit}",
+ "ap.pack.keep":"You keep {amount} on each {pack}",
+ "ap.pack.warn":"This {pack} costs the same or more than {size} single {unit}. Customers may buy singles instead.",
+ "ap.pack.small":"A {pack} holds 2 or more {unit}.",
+ "ap.stock.q":"How many do you have now?",
+ "ap.stock.in":"Count in",
+ "ap.stock.loose":"plus loose {unit}",
+ "ap.stock.sum":"{packs} {pack} and {loose} = {total} {unit}",
+ "ap.saved.n":"{name} saved. {n} {unit} on hand.",
+ "ap.saved.packs":"{name} saved. {n} {unit} on hand ({packs} {pack} and {loose}).",
+ "ap.err.name":"Type the product name, 2 letters or more.",
+ "ap.err.unit":"Say what you call one, for example sachet.",
+ "ap.err.price":"Enter the price for one {unit}.",
+ "ap.err.stock":"Check how many you have: whole numbers up to 100,000.",
+ "ap.err.packprice":"Enter the price for one {pack}.",
+ "ap.ws.q":"Wholesale price",
+ "ap.err.cost":"Check what one {unit} costs you.",
+ "rs.came":"How did it come?",
+ "rs.single":"Single {unit}",
+ "rs.inpacks":"In {pack}",
+ "rs.inpacks.new":"In cartons or packs",
+ "rs.howmany.pack":"How many {pack}?",
+ "rs.howmany.unit":"How many {unit}?",
+ "rs.cost.pack":"What did one {pack} cost?",
+ "rs.cost.unit":"What did one {unit} cost?",
+ "rs.cost.each":"= {amount} a {unit}",
+ "rs.margin":"You sell one {unit} at {price}, so you keep {margin}.",
+ "rs.loss":"You lose {amount} on each {unit} at today's price.",
+ "rs.reprice":"Change the selling price?",
+ "rs.price":"Your price for one {unit}",
+ "rs.packprice":"Your price for one {pack}",
+ "pr.est.margin":"Keep your {margin} on each: {price}",
+ "pr.est.pack":"From your {pack} price: about {price} each",
+ "pr.est.size":"{size} × your price for one = {price}",
+ "pr.est.use":"Use {price}",
+ "rs.saved.packs":"{packs} {pack} ({n} {unit}) added to {name}. Now {total} {unit} on hand.",
+ "rs.saved.units":"{n} {unit} added to {name}. Now {total} {unit} on hand.",
+ "rs.priced":"Price for one {unit} is now {price}.",
+ "rs.packnoprice":"Add a {pack} price to sell by the {pack}.",
+ "rs.err.qty":"Enter how many arrived, 1 or more.",
+ "rs.now":"{name} has {n} {unit} now.",
+ "pr.each":"One {pack} works out at {price} each",
+ "log.f.sold":"Sales",
+ "log.f.arrived":"New stock",
+ "log.f.count":"Counts",
+ "rs.err.big":"That's a lot to add at once. Check the number.",
+ "cust.err":"Add a name. If you add a phone number, check it.",
+ "cust.saved":"{name} saved.",
+ "tk.clearcart":"Clear",
+ "tk.clearcart.aria":"Clear all items from this sale",
+ "tk.cartcleared":"Items cleared.",
+ "col.how":"How did they pay?",
+ "col.amount.transfer":"How much did they transfer?",
+ "col.amount.pos":"How much was paid on the POS?",
+ "col.given":"given",
+ "col.split.first":"Add each part of the payment. Cash first, then the transfer or POS.",
+ "col.split.remove":"Remove the {method} part",
+ "col.fb.recv":"Received now",
+ "col.fb.wait":"Waiting to be checked",
+ "col.wait.note":"We'll mark it waiting until you check it landed. They still owe it until then.",
+ "col.over":"That is more than {name} owes. {amount} is still owing.",
+ "col.nothing":"Nothing is left to collect on this sale. Check the waiting payment first.",
+ "col.waitline":"{amount} waiting to be checked",
+ "col.paidsofar":"{paid} of {total} paid so far",
+ "col.err.cash":"Tick that you have the cash in hand.",
+ "col.err.reason":"Say what happened, so the record is clear.",
+ "col.title.wait":"Saved as waiting",
+ "col.o.wait":"{amount} saved as waiting. Check it landed before you count it.",
+ "col.o.mix":"{received} cash received. {waiting} saved as waiting.",
+ "col.o.wait.2":"They still owe the waiting part until it is checked.",
+ "col.check.title":"Check collection",
+ "col.check.sub":"{method} from {name}",
+ "col.check.bank":"Open your bank app and look for {amount}.",
+ "col.check.pos":"Look on the POS slip or the POS history for {amount}.",
+ "col.check.landed":"It landed",
+ "col.check.not":"Not received",
+ "col.check.reason":"If it did not land, what happened?",
+ "col.check.done":"This collection has already been checked.",
+ "col.o.checked.t":"Payment checked",
+ "col.o.checked":"{amount} from {name} is received.",
+ "col.o.checked.2":"It is taken off what they owe.",
+ "col.o.not.t":"Marked not received",
+ "col.o.not":"{amount} is back on what {name} owes.",
+ "col.o.not.2":"The reason is kept in their history.",
+ "col.by":"Taken by {name}",
+ "col.checkedby":"checked by {name}",
+ "col.row":"Collected by {method}",
+ "col.notrecv":"Not received",
+ "sv.col.recv":"Collected {amount} by {method}",
+ "sv.col.pending":"{amount} by {method}, waiting to be checked",
+ "sv.col.not":"{amount} by {method} did not land"
 }};
 
 
@@ -4051,6 +4214,134 @@ __exports.default={meta:{name:'Pidgin',status:'draft'},strings:{
  "plan.every.month":"Every month",
  "plan.every.year":"Every year",
  "plan.stays":"{name} go still dey on.",
+ "tk.hold":"Hold",
+ "tk.hold.aria":"Hold dis ticket, serve the next customer",
+ "tk.who":"Na for who?",
+ "tk.who.ph":"Name, if you want",
+ "tk.hold.go":"Hold ticket",
+ "tk.held":"Ticket for {name} dey hold.",
+ "tk.customer":"Customer {letter}",
+ "tk.now":"Now",
+ "tk.full":"Six tickets don open. Pay or clear one first.",
+ "tk.inother":"{n} dey inside ticket for {name}",
+ "tk.price":"Price of {name} don change since you hold dis ticket. New total na {total}.",
+ "tk.gone.one":"1 item no dey sell again, we comot am.",
+ "tk.gone.other":"{count} items no dey sell again, we comot dem.",
+ "tk.yesterday":"Yesterday",
+ "tk.next":"Next: {name} · {amount}",
+ "tk.clear":"Clear ticket",
+ "tk.cleared":"Ticket for {name} don clear.",
+ "tk.rename":"Change name",
+ "tk.row":"Open tickets",
+ "tk.menu":"Options for {name} ticket",
+ "tk.logout.one":"1 open ticket go clear from dis phone.",
+ "tk.logout.other":"{count} open tickets go clear from dis phone.",
+ "tk.closeday.one":"1 ticket still dey open. E no be sale.",
+ "tk.closeday.other":"{count} tickets still dey open. Dem no be sale.",
+ "tk.renamed":"Name don save.",
+ "ap.unit.q":"How you dey sell am one by one?",
+ "ap.unit.other":"Other",
+ "ap.unit.other.label":"Wetin you dey call one?",
+ "ap.price":"Price for one {unit}",
+ "ap.cost":"How much one {unit} cost you",
+ "ap.cost.help":"Leave am if you no know. Profit go show when you fill am.",
+ "ap.pack.q":"You dey also sell am by carton or pack?",
+ "ap.pack.yes":"Yes, by {pack}",
+ "ap.pack.called":"Name",
+ "ap.pack.size":"How many {unit} dey inside one {pack}?",
+ "ap.pack.price":"Price for one {pack}",
+ "ap.pack.each":"= {amount} for one {unit}",
+ "ap.pack.about":"= around {amount} for one {unit}",
+ "ap.pack.keep":"You go keep {amount} for each {pack}",
+ "ap.pack.warn":"Dis {pack} cost reach or pass {size} single {unit}. Customers fit buy single instead.",
+ "ap.pack.small":"One {pack} must get 2 {unit} or more.",
+ "ap.stock.q":"How many you get now?",
+ "ap.stock.in":"Count am by",
+ "ap.stock.loose":"plus loose {unit}",
+ "ap.stock.sum":"{packs} {pack} and {loose} = {total} {unit}",
+ "ap.saved.n":"{name} don save. {n} {unit} dey.",
+ "ap.saved.packs":"{name} don save. {n} {unit} dey ({packs} {pack} and {loose}).",
+ "ap.err.name":"Type the product name, 2 letters or more.",
+ "ap.err.unit":"Talk wetin you dey call one, like sachet.",
+ "ap.err.price":"Put the price for one {unit}.",
+ "ap.err.stock":"Check how many you get: full number reach 100,000.",
+ "ap.err.packprice":"Put the price for one {pack}.",
+ "ap.ws.q":"Wholesale price",
+ "ap.err.cost":"Check how much one {unit} cost you.",
+ "rs.came":"How e take come?",
+ "rs.single":"Single {unit}",
+ "rs.inpacks":"For {pack}",
+ "rs.inpacks.new":"For carton or pack",
+ "rs.howmany.pack":"How many {pack}?",
+ "rs.howmany.unit":"How many {unit}?",
+ "rs.cost.pack":"How much one {pack} cost?",
+ "rs.cost.unit":"How much one {unit} cost?",
+ "rs.cost.each":"= {amount} for one {unit}",
+ "rs.margin":"You dey sell one {unit} for {price}, so you go keep {margin}.",
+ "rs.loss":"You go lose {amount} for each {unit} for today price.",
+ "rs.reprice":"Change the selling price?",
+ "rs.price":"Your price for one {unit}",
+ "rs.packprice":"Your price for one {pack}",
+ "pr.est.margin":"Keep your {margin} for each: {price}",
+ "pr.est.pack":"From your {pack} price: around {price} each",
+ "pr.est.size":"{size} × your price for one = {price}",
+ "pr.est.use":"Use {price}",
+ "rs.saved.packs":"{packs} {pack} ({n} {unit}) don add to {name}. Now {total} {unit} dey.",
+ "rs.saved.units":"{n} {unit} don add to {name}. Now {total} {unit} dey.",
+ "rs.priced":"Price for one {unit} don be {price} now.",
+ "rs.packnoprice":"Put {pack} price make you fit sell by {pack}.",
+ "rs.err.qty":"Put how many arrive, 1 or more.",
+ "rs.now":"{name} get {n} {unit} now.",
+ "pr.each":"One {pack} na around {price} each",
+ "log.f.sold":"Sales",
+ "log.f.arrived":"New stock",
+ "log.f.count":"Count",
+ "rs.err.big":"Dis one plenty to add at once. Check the number.",
+ "cust.err":"Put name. If you put phone number, check am well.",
+ "cust.saved":"{name} don save.",
+ "tk.clearcart":"Clear am",
+ "tk.clearcart.aria":"Comot all the items for this sale",
+ "tk.cartcleared":"All the items don comot.",
+ "col.how":"How dem pay?",
+ "col.amount.transfer":"How much dem transfer?",
+ "col.amount.pos":"How much dem pay for POS?",
+ "col.given":"wey dem give",
+ "col.split.first":"Add each part of the money. Cash first, then the transfer or POS.",
+ "col.split.remove":"Comot the {method} part",
+ "col.fb.recv":"Don collect now",
+ "col.fb.wait":"Dey wait make you check",
+ "col.wait.note":"We go mark am waiting till you check say e land. Dem still dey owe am till then.",
+ "col.over":"E pass wetin {name} dey owe. Na {amount} still remain.",
+ "col.nothing":"Nothing remain to collect for this sale. Check the waiting payment first.",
+ "col.waitline":"{amount} dey wait make you check",
+ "col.paidsofar":"{paid} out of {total} don pay so far",
+ "col.err.cash":"Tick say the cash dey your hand.",
+ "col.err.reason":"Talk wetin happen, make the record clear.",
+ "col.title.wait":"E dey wait",
+ "col.o.wait":"{amount} dey wait. Check say e land before you count am.",
+ "col.o.mix":"{received} cash don enter. {waiting} dey wait.",
+ "col.o.wait.2":"Dem still dey owe the waiting part till you check am.",
+ "col.check.title":"Check the collection",
+ "col.check.sub":"{method} from {name}",
+ "col.check.bank":"Open your bank app look for {amount}.",
+ "col.check.pos":"Look the POS slip or POS history for {amount}.",
+ "col.check.landed":"E don land",
+ "col.check.not":"E no land",
+ "col.check.reason":"If e no land, wetin happen?",
+ "col.check.done":"Dem don check this collection before.",
+ "col.o.checked.t":"Payment don check",
+ "col.o.checked":"{amount} from {name} don enter.",
+ "col.o.checked.2":"We don remove am from wetin dem dey owe.",
+ "col.o.not.t":"E no land",
+ "col.o.not":"{amount} don go back on top wetin {name} dey owe.",
+ "col.o.not.2":"The reason dey for their history.",
+ "col.by":"{name} collect am",
+ "col.checkedby":"{name} check am",
+ "col.row":"Collect by {method}",
+ "col.notrecv":"E no land",
+ "sv.col.recv":"Collect {amount} by {method}",
+ "sv.col.pending":"{amount} by {method}, e dey wait make you check",
+ "sv.col.not":"{amount} by {method} no land",
 }};
 
 
@@ -5884,6 +6175,134 @@ __exports.default={meta:{name:'Yorùbá',status:'draft'},strings:{
  "plan.every.month":"Lóṣù",
  "plan.every.year":"Lọ́dún",
  "plan.stays":"{name} yóò máa bá a lọ.",
+ "tk.hold":"Dá dúró",
+ "tk.hold.aria":"Dá tíkẹ́ẹ̀tì yìí dúró kí o ta fún oníbàárà tó kàn",
+ "tk.who":"Ti ta ni èyí?",
+ "tk.who.ph":"Orúkọ, tí o bá fẹ́",
+ "tk.hold.go":"Dá tíkẹ́ẹ̀tì dúró",
+ "tk.held":"Tíkẹ́ẹ̀tì {name} wà ní ìdádúró.",
+ "tk.customer":"Oníbàárà {letter}",
+ "tk.now":"Báyìí",
+ "tk.full":"Tíkẹ́ẹ̀tì mẹ́fà ti ṣí sílẹ̀. San tàbí pa ọ̀kan rẹ́ ná.",
+ "tk.inother":"{n} wà nínú tíkẹ́ẹ̀tì {name}",
+ "tk.price":"Iye {name} ti yípadà láti ìgbà tí a dá tíkẹ́ẹ̀tì yìí dúró. Àpapọ̀ tuntun: {total}.",
+ "tk.gone.one":"Ọjà 1 kò sí fún títà mọ́, a ti yọ ọ́ kúrò.",
+ "tk.gone.other":"Ọjà {count} kò sí fún títà mọ́, a ti yọ wọ́n kúrò.",
+ "tk.yesterday":"Àná",
+ "tk.next":"Èyí tó kàn: {name} · {amount}",
+ "tk.clear":"Pa tíkẹ́ẹ̀tì rẹ́",
+ "tk.cleared":"A ti pa tíkẹ́ẹ̀tì {name} rẹ́.",
+ "tk.rename":"Yí orúkọ padà",
+ "tk.row":"Àwọn tíkẹ́ẹ̀tì tó ṣí",
+ "tk.menu":"Àṣàyàn fún tíkẹ́ẹ̀tì {name}",
+ "tk.logout.one":"Tíkẹ́ẹ̀tì 1 tó ṣí yóò parẹ́ lórí fóònù yìí.",
+ "tk.logout.other":"Tíkẹ́ẹ̀tì {count} tó ṣí yóò parẹ́ lórí fóònù yìí.",
+ "tk.closeday.one":"Tíkẹ́ẹ̀tì 1 ṣì ṣí. Kì í ṣe títà.",
+ "tk.closeday.other":"Tíkẹ́ẹ̀tì {count} ṣì ṣí. Wọn kì í ṣe títà.",
+ "tk.renamed":"A ti fi orúkọ pamọ́.",
+ "ap.unit.q":"Báwo ni o ṣe ń tà á lọ́kọ̀ọ̀kan?",
+ "ap.unit.other":"Òmíràn",
+ "ap.unit.other.label":"Kí ni o ń pe ọ̀kan?",
+ "ap.price":"Iye owó {unit} kan",
+ "ap.cost":"Iye tí {unit} kan ń ná ọ",
+ "ap.cost.help":"Fi sílẹ̀ tí o kò bá mọ̀. Èrè yóò hàn nígbà tí o bá kọ ọ́.",
+ "ap.pack.q":"Ṣé o tún ń tà á ní káàtọ̀nù tàbí páàkì?",
+ "ap.pack.yes":"Bẹ́ẹ̀ni, ní {pack}",
+ "ap.pack.called":"Orúkọ",
+ "ap.pack.size":"{unit} mélòó ló wà nínú {pack} kan?",
+ "ap.pack.price":"Iye owó {pack} kan",
+ "ap.pack.each":"= {amount} fún {unit} kan",
+ "ap.pack.about":"= nǹkan bí {amount} fún {unit} kan",
+ "ap.pack.keep":"O ń jèrè {amount} lórí {pack} kọ̀ọ̀kan",
+ "ap.pack.warn":"{pack} yìí wọ́n tó tàbí ju {unit} {size} lọ. Àwọn oníbàárà lè ra ẹyọ kọ̀ọ̀kan dípò.",
+ "ap.pack.small":"{pack} kan gbọ́dọ̀ ní {unit} 2 tàbí jù bẹ́ẹ̀ lọ.",
+ "ap.stock.q":"Mélòó ló wà lọ́wọ́ rẹ báyìí?",
+ "ap.stock.in":"Kà á ní",
+ "ap.stock.loose":"pẹ̀lú {unit} ẹyọ",
+ "ap.stock.sum":"{pack} {packs} àti {loose} = {unit} {total}",
+ "ap.saved.n":"A ti fi {name} pamọ́. {unit} {n} wà lọ́wọ́.",
+ "ap.saved.packs":"A ti fi {name} pamọ́. {unit} {n} wà lọ́wọ́ ({pack} {packs} àti {loose}).",
+ "ap.err.name":"Kọ orúkọ ọjà, lẹ́tà 2 tàbí jù bẹ́ẹ̀ lọ.",
+ "ap.err.unit":"Sọ ohun tí o ń pe ọ̀kan, bí sáṣẹ́ẹ̀tì.",
+ "ap.err.price":"Kọ iye owó {unit} kan.",
+ "ap.err.stock":"Ṣàyẹ̀wò iye tí o ní: nọ́mbà odidi títí dé 100,000.",
+ "ap.err.packprice":"Kọ iye owó {pack} kan.",
+ "ap.ws.q":"Iye owó oníṣòwò",
+ "ap.err.cost":"Ṣàyẹ̀wò iye tí {unit} kan ń ná ọ.",
+ "rs.came":"Báwo ló ṣe dé?",
+ "rs.single":"{unit} ẹyọ kan",
+ "rs.inpacks":"Ní {pack}",
+ "rs.inpacks.new":"Ní káàtọ̀nù tàbí páàkì",
+ "rs.howmany.pack":"{pack} mélòó?",
+ "rs.howmany.unit":"{unit} mélòó?",
+ "rs.cost.pack":"Èló ni {pack} kan ná ọ?",
+ "rs.cost.unit":"Èló ni {unit} kan ná ọ?",
+ "rs.cost.each":"= {amount} fún {unit} kan",
+ "rs.margin":"O ń ta {unit} kan ní {price}, nítorí náà o ń jèrè {margin}.",
+ "rs.loss":"O máa pàdánù {amount} lórí {unit} kọ̀ọ̀kan ní iye òní.",
+ "rs.reprice":"Yí iye owó títà padà?",
+ "rs.price":"Iye owó rẹ fún {unit} kan",
+ "rs.packprice":"Iye owó rẹ fún {pack} kan",
+ "pr.est.margin":"Pa èrè {margin} rẹ mọ́: {price}",
+ "pr.est.pack":"Láti iye {pack} rẹ: nǹkan bí {price} ẹyọ kan",
+ "pr.est.size":"{size} × iye owó ẹyọ kan = {price}",
+ "pr.est.use":"Lo {price}",
+ "rs.saved.packs":"A ti fi {pack} {packs} ({unit} {n}) kún {name}. {unit} {total} wà báyìí.",
+ "rs.saved.units":"A ti fi {unit} {n} kún {name}. {unit} {total} wà báyìí.",
+ "rs.priced":"Iye owó {unit} kan jẹ́ {price} báyìí.",
+ "rs.packnoprice":"Fi iye owó {pack} kún un kí o lè tà á ní {pack}.",
+ "rs.err.qty":"Kọ iye tó dé, 1 tàbí jù bẹ́ẹ̀ lọ.",
+ "rs.now":"{name} ní {unit} {n} báyìí.",
+ "pr.each":"{pack} kan jẹ́ nǹkan bí {price} ẹyọ kan",
+ "log.f.sold":"Títà",
+ "log.f.arrived":"Ọjà tuntun",
+ "log.f.count":"Ìkàwé",
+ "rs.err.big":"Èyí pọ̀ jù láti fi kún un lẹ́ẹ̀kan. Ṣàyẹ̀wò nọ́mbà náà.",
+ "cust.err":"Kọ orúkọ. Tí o bá fi nọ́mbà fóònù sí i, ṣàyẹ̀wò rẹ̀.",
+ "cust.saved":"A ti fi {name} pamọ́.",
+ "tk.clearcart":"Pa á rẹ́",
+ "tk.clearcart.aria":"Yọ gbogbo ọjà kúrò nínú títà yìí",
+ "tk.cartcleared":"A ti yọ gbogbo ọjà kúrò.",
+ "col.how":"Báwo ni wọ́n ṣe sanwó?",
+ "col.amount.transfer":"Èló ni wọ́n fi ránṣẹ́?",
+ "col.amount.pos":"Èló ni wọ́n san lórí POS?",
+ "col.given":"tí wọ́n fún ọ",
+ "col.split.first":"Fi apá kọ̀ọ̀kan owó náà kún un. Owó ọwọ́ kọ́kọ́, lẹ́yìn náà ìfiránṣẹ́ tàbí POS.",
+ "col.split.remove":"Yọ apá {method} kúrò",
+ "col.fb.recv":"Ó ti dé báyìí",
+ "col.fb.wait":"Ó ń dúró kí o ṣàyẹ̀wò",
+ "col.wait.note":"A ó sàmì sí i pé ó ń dúró títí o fi ṣàyẹ̀wò pé ó dé. Wọ́n ṣì jẹ ẹ́ títí di ìgbà náà.",
+ "col.over":"Ó ju ohun tí {name} jẹ lọ. {amount} ló ṣì kù.",
+ "col.nothing":"Kò sí ohun tó kù láti gbà lórí ọjà yìí. Ṣàyẹ̀wò owó tó ń dúró ná.",
+ "col.waitline":"{amount} ń dúró kí o ṣàyẹ̀wò",
+ "col.paidsofar":"{paid} nínú {total} ni wọ́n ti san",
+ "col.err.cash":"Sàmì sí i pé owó ọwọ́ náà wà lọ́wọ́ rẹ.",
+ "col.err.reason":"Sọ ohun tó ṣẹlẹ̀, kí àkọsílẹ̀ lè ṣe kedere.",
+ "col.title.wait":"Ó ń dúró",
+ "col.o.wait":"{amount} ń dúró. Ṣàyẹ̀wò pé ó dé kí o tó kà á.",
+ "col.o.mix":"{received} owó ọwọ́ ti dé. {waiting} ń dúró.",
+ "col.o.wait.2":"Wọ́n ṣì jẹ apá tó ń dúró títí o fi ṣàyẹ̀wò rẹ̀.",
+ "col.check.title":"Ṣàyẹ̀wò owó tí wọ́n san",
+ "col.check.sub":"{method} láti ọ̀dọ̀ {name}",
+ "col.check.bank":"Ṣí áàpù báǹkì rẹ kí o wá {amount}.",
+ "col.check.pos":"Wo ìwé POS tàbí ìtàn POS fún {amount}.",
+ "col.check.landed":"Ó ti dé",
+ "col.check.not":"Kò dé",
+ "col.check.reason":"Tí kò bá dé, kí ló ṣẹlẹ̀?",
+ "col.check.done":"Wọ́n ti ṣàyẹ̀wò owó yìí tẹ́lẹ̀.",
+ "col.o.checked.t":"A ti ṣàyẹ̀wò owó náà",
+ "col.o.checked":"{amount} láti ọ̀dọ̀ {name} ti dé.",
+ "col.o.checked.2":"A ti yọ ọ́ kúrò nínú ohun tí wọ́n jẹ.",
+ "col.o.not.t":"A sàmì sí i pé kò dé",
+ "col.o.not":"{amount} ti padà sí orí ohun tí {name} jẹ.",
+ "col.o.not.2":"Ìdí rẹ̀ wà nínú ìtàn wọn.",
+ "col.by":"{name} ló gbà á",
+ "col.checkedby":"{name} ló ṣàyẹ̀wò rẹ̀",
+ "col.row":"Wọ́n san pẹ̀lú {method}",
+ "col.notrecv":"Kò dé",
+ "sv.col.recv":"A gba {amount} pẹ̀lú {method}",
+ "sv.col.pending":"{amount} pẹ̀lú {method}, ó ń dúró kí o ṣàyẹ̀wò",
+ "sv.col.not":"{amount} pẹ̀lú {method} kò dé",
 }};
 
 
@@ -7717,6 +8136,134 @@ __exports.default={meta:{name:'Igbo',status:'draft'},strings:{
  "plan.every.month":"Kwa ọnwa",
  "plan.every.year":"Kwa afọ",
  "plan.stays":"{name} ga-anọgide.",
+ "tk.hold":"Jide",
+ "tk.hold.aria":"Jide tiketi a, rere onye ahịa na-esote",
+ "tk.who":"Onye ka ọ bụ maka?",
+ "tk.who.ph":"Aha, ọ bụrụ na ịchọrọ",
+ "tk.hold.go":"Jide tiketi",
+ "tk.held":"A na-ejide tiketi maka {name}.",
+ "tk.customer":"Onye ahịa {letter}",
+ "tk.now":"Ugbu a",
+ "tk.full":"Tiketi isii emeghere. Kwụọ ma ọ bụ hichapụ otu mbụ.",
+ "tk.inother":"{n} nọ na tiketi maka {name}",
+ "tk.price":"Ọnụ ahịa {name} gbanwere kemgbe e jidere tiketi a. Ngụkọta ọhụrụ {total}.",
+ "tk.gone.one":"A naghị ere ngwa 1 ọzọ, ewepụrụ ya.",
+ "tk.gone.other":"A naghị ere ngwa {count} ọzọ, ewepụrụ ha.",
+ "tk.yesterday":"Ụnyaahụ",
+ "tk.next":"Na-esote: {name} · {amount}",
+ "tk.clear":"Hichapụ tiketi",
+ "tk.cleared":"E hichapụrụ tiketi maka {name}.",
+ "tk.rename":"Gbanwee aha",
+ "tk.row":"Tiketi meghere emeghe",
+ "tk.menu":"Nhọrọ maka tiketi {name}",
+ "tk.logout.one":"A ga-ehichapụ tiketi 1 emeghere na ekwentị a.",
+ "tk.logout.other":"A ga-ehichapụ tiketi {count} emeghere na ekwentị a.",
+ "tk.closeday.one":"Tiketi 1 ka meghere. Ọ bụghị ire ahịa.",
+ "tk.closeday.other":"Tiketi {count} ka meghere. Ha abụghị ire ahịa.",
+ "tk.renamed":"Echekwala aha.",
+ "ap.unit.q":"Kedu ka ị si ere ya otu otu?",
+ "ap.unit.other":"Ọzọ",
+ "ap.unit.other.label":"Gịnị ka ị na-akpọ otu?",
+ "ap.price":"Ọnụ ahịa otu {unit}",
+ "ap.cost":"Ego otu {unit} na-efu gị",
+ "ap.cost.help":"Hapụ ya ma ọ bụrụ na ị maghị. Uru ga-egosi mgbe ejupụtara ya.",
+ "ap.pack.q":"Ị na-erekwa ya site na katọn ma ọ bụ pakị?",
+ "ap.pack.yes":"Ee, site na {pack}",
+ "ap.pack.called":"Aha",
+ "ap.pack.size":"{unit} ole dị n'otu {pack}?",
+ "ap.pack.price":"Ọnụ ahịa otu {pack}",
+ "ap.pack.each":"= {amount} maka otu {unit}",
+ "ap.pack.about":"= ihe dị ka {amount} maka otu {unit}",
+ "ap.pack.keep":"Ị na-enweta {amount} na {pack} ọ bụla",
+ "ap.pack.warn":"{pack} a dị ọnụ ka ma ọ bụ karịa {unit} {size}. Ndị ahịa nwere ike ịzụ otu otu kama.",
+ "ap.pack.small":"Otu {pack} nwere {unit} 2 ma ọ bụ karịa.",
+ "ap.stock.q":"Ole ka ị nwere ugbu a?",
+ "ap.stock.in":"Gụọ ya na",
+ "ap.stock.loose":"gbakwunyere {unit} ndị ọzọ",
+ "ap.stock.sum":"{pack} {packs} na {loose} = {unit} {total}",
+ "ap.saved.n":"Echekwala {name}. {unit} {n} dị.",
+ "ap.saved.packs":"Echekwala {name}. {unit} {n} dị ({pack} {packs} na {loose}).",
+ "ap.err.name":"Dee aha ngwaahịa, mkpụrụedemede 2 ma ọ bụ karịa.",
+ "ap.err.unit":"Kwuo ihe ị na-akpọ otu, dịka sachet.",
+ "ap.err.price":"Tinye ọnụ ahịa otu {unit}.",
+ "ap.err.stock":"Lelee ole ị nwere: ọnụọgụ zuru ezu ruo 100,000.",
+ "ap.err.packprice":"Tinye ọnụ ahịa otu {pack}.",
+ "ap.ws.q":"Ọnụ ahịa ndị na-ere ere",
+ "ap.err.cost":"Lelee ego otu {unit} na-efu gị.",
+ "rs.came":"Kedu ka o si bịa?",
+ "rs.single":"{unit} otu otu",
+ "rs.inpacks":"Na {pack}",
+ "rs.inpacks.new":"Na katọn ma ọ bụ pakị",
+ "rs.howmany.pack":"{pack} ole?",
+ "rs.howmany.unit":"{unit} ole?",
+ "rs.cost.pack":"Ego ole ka otu {pack} ji?",
+ "rs.cost.unit":"Ego ole ka otu {unit} ji?",
+ "rs.cost.each":"= {amount} maka otu {unit}",
+ "rs.margin":"Ị na-ere otu {unit} na {price}, ya mere ị na-enweta {margin}.",
+ "rs.loss":"Ị ga-efunahụ {amount} na {unit} ọ bụla na ọnụ ahịa taa.",
+ "rs.reprice":"Gbanwee ọnụ ahịa ire?",
+ "rs.price":"Ọnụ ahịa gị maka otu {unit}",
+ "rs.packprice":"Ọnụ ahịa gị maka otu {pack}",
+ "pr.est.margin":"Debe {margin} gị na nke ọ bụla: {price}",
+ "pr.est.pack":"Site na ọnụ ahịa {pack} gị: ihe dị ka {price} otu",
+ "pr.est.size":"{size} × ọnụ ahịa gị maka otu = {price}",
+ "pr.est.use":"Jiri {price}",
+ "rs.saved.packs":"Agbakwunyere {pack} {packs} ({unit} {n}) na {name}. {unit} {total} dị ugbu a.",
+ "rs.saved.units":"Agbakwunyere {unit} {n} na {name}. {unit} {total} dị ugbu a.",
+ "rs.priced":"Ọnụ ahịa otu {unit} bụ {price} ugbu a.",
+ "rs.packnoprice":"Tinye ọnụ ahịa {pack} ka ị ree ya na {pack}.",
+ "rs.err.qty":"Tinye ole bịara, 1 ma ọ bụ karịa.",
+ "rs.now":"{name} nwere {unit} {n} ugbu a.",
+ "pr.each":"Otu {pack} bụ ihe dị ka {price} otu",
+ "log.f.sold":"Ire ahịa",
+ "log.f.arrived":"Ngwa ọhụrụ",
+ "log.f.count":"Ọgụgụ",
+ "rs.err.big":"Nke a karịrị ịgbakwunye otu oge. Lelee ọnụọgụ ahụ.",
+ "cust.err":"Tinye aha. Ọ bụrụ na i tinye nọmba ekwentị, lelee ya.",
+ "cust.saved":"Echekwala {name}.",
+ "tk.clearcart":"Hichapụ",
+ "tk.clearcart.aria":"Wepụ ngwa niile n'ire a",
+ "tk.cartcleared":"Ewepụla ngwa niile.",
+ "col.how":"Kedu ka ha si kwụọ?",
+ "col.amount.transfer":"Ego ole ka ha zitere?",
+ "col.amount.pos":"Ego ole ka a kwụrụ na POS?",
+ "col.given":"nke ha nyere",
+ "col.split.first":"Tinye akụkụ ọ bụla nke ego ahụ. Ego aka mbụ, emesịa transfer ma ọ bụ POS.",
+ "col.split.remove":"Wepụ akụkụ {method}",
+ "col.fb.recv":"Abatala ugbu a",
+ "col.fb.wait":"Na-eche ka i lelee ya",
+ "col.wait.note":"Anyị ga-akara ya dị ka ọ na-eche ruo mgbe i lere na ọ batara. Ha ka ji ya ruo mgbe ahụ.",
+ "col.over":"Nke a karịrị ihe {name} ji. {amount} ka fọdụrụ.",
+ "col.nothing":"Ọ dịghị ihe fọdụrụ ịnakọta na ire a. Lelee ego na-eche mbụ.",
+ "col.waitline":"{amount} na-eche ka i lelee ya",
+ "col.paidsofar":"E kwụọla {paid} n'ime {total} ruo ugbu a",
+ "col.err.cash":"Kaa akara na ego aka ahụ dị gị n'aka.",
+ "col.err.reason":"Kwuo ihe mere, ka ndekọ ahụ doo anya.",
+ "col.title.wait":"Ọ na-eche",
+ "col.o.wait":"{amount} na-eche. Lelee na ọ batara tupu ị gụọ ya.",
+ "col.o.mix":"{received} ego aka abatala. {waiting} na-eche.",
+ "col.o.wait.2":"Ha ka ji akụkụ na-eche ruo mgbe i lere ya.",
+ "col.check.title":"Lelee ego a nakọtara",
+ "col.check.sub":"{method} si n'aka {name}",
+ "col.check.bank":"Mepee ngwa ụlọ akụ gị chọọ {amount}.",
+ "col.check.pos":"Lee akwụkwọ POS ma ọ bụ akụkọ POS maka {amount}.",
+ "col.check.landed":"Ọ batara",
+ "col.check.not":"Ọ batabeghị",
+ "col.check.reason":"Ọ bụrụ na ọ batabeghị, gịnị mere?",
+ "col.check.done":"E lerelarị ego a.",
+ "col.o.checked.t":"E lerela ego ahụ",
+ "col.o.checked":"{amount} si n'aka {name} abatala.",
+ "col.o.checked.2":"E wepụla ya n'ihe ha ji.",
+ "col.o.not.t":"Akaala ya na ọ batabeghị",
+ "col.o.not":"{amount} alaghachila n'ihe {name} ji.",
+ "col.o.not.2":"Ihe kpatara ya dị n'akụkọ ha.",
+ "col.by":"{name} natara ya",
+ "col.checkedby":"{name} lere ya",
+ "col.row":"E ji {method} kwụọ",
+ "col.notrecv":"Ọ batabeghị",
+ "sv.col.recv":"A nakọtara {amount} site na {method}",
+ "sv.col.pending":"{amount} site na {method}, na-eche ka i lelee ya",
+ "sv.col.not":"{amount} site na {method} abatabeghị",
 }};
 
 
@@ -9550,6 +10097,134 @@ __exports.default={meta:{name:'Hausa',status:'draft'},strings:{
  "plan.every.month":"Kowane wata",
  "plan.every.year":"Kowace shekara",
  "plan.stays":"{name} zai ci gaba.",
+ "tk.hold":"Riƙe",
+ "tk.hold.aria":"Riƙe wannan tikiti ka sayar wa abokin ciniki na gaba",
+ "tk.who":"Na wane ne wannan?",
+ "tk.who.ph":"Suna, idan kana so",
+ "tk.hold.go":"Riƙe tikiti",
+ "tk.held":"An riƙe tikitin {name}.",
+ "tk.customer":"Abokin ciniki {letter}",
+ "tk.now":"Yanzu",
+ "tk.full":"Tikiti shida a buɗe suke. Biya ko share ɗaya tukuna.",
+ "tk.inother":"{n} na cikin tikitin {name}",
+ "tk.price":"Farashin {name} ya canza tun da aka riƙe wannan tikiti. Sabon jimilla {total}.",
+ "tk.gone.one":"Ba a sayar da kaya 1 kuma, an cire shi.",
+ "tk.gone.other":"Ba a sayar da kaya {count} kuma, an cire su.",
+ "tk.yesterday":"Jiya",
+ "tk.next":"Na gaba: {name} · {amount}",
+ "tk.clear":"Share tikiti",
+ "tk.cleared":"An share tikitin {name}.",
+ "tk.rename":"Canja suna",
+ "tk.row":"Tikitocin da ke buɗe",
+ "tk.menu":"Zaɓuɓɓuka don tikitin {name}",
+ "tk.logout.one":"Za a share tikiti 1 da ke buɗe daga wannan waya.",
+ "tk.logout.other":"Za a share tikiti {count} da ke buɗe daga wannan waya.",
+ "tk.closeday.one":"Tikiti 1 yana buɗe har yanzu. Ba sayarwa ba ne.",
+ "tk.closeday.other":"Tikiti {count} suna buɗe har yanzu. Ba sayarwa ba ne.",
+ "tk.renamed":"An adana suna.",
+ "ap.unit.q":"Yaya kake sayar da shi ɗaya-ɗaya?",
+ "ap.unit.other":"Wani",
+ "ap.unit.other.label":"Me kake kiran ɗaya?",
+ "ap.price":"Farashin {unit} ɗaya",
+ "ap.cost":"Nawa {unit} ɗaya ke kashe maka",
+ "ap.cost.help":"Bar shi idan ba ka sani ba. Riba za ta bayyana idan an cika.",
+ "ap.pack.q":"Kana kuma sayar da shi a kwali ko fakiti?",
+ "ap.pack.yes":"Eh, a {pack}",
+ "ap.pack.called":"Suna",
+ "ap.pack.size":"{unit} nawa ke cikin {pack} ɗaya?",
+ "ap.pack.price":"Farashin {pack} ɗaya",
+ "ap.pack.each":"= {amount} kowane {unit}",
+ "ap.pack.about":"= kusan {amount} kowane {unit}",
+ "ap.pack.keep":"Kana samun {amount} a kowane {pack}",
+ "ap.pack.warn":"Wannan {pack} ya kai ko ya wuce {unit} {size}. Abokan ciniki na iya sayen ɗaya-ɗaya maimakon.",
+ "ap.pack.small":"{pack} ɗaya yana da {unit} 2 ko fiye.",
+ "ap.stock.q":"Nawa kake da shi yanzu?",
+ "ap.stock.in":"Ƙirga a",
+ "ap.stock.loose":"da {unit} sako-sako",
+ "ap.stock.sum":"{pack} {packs} da {loose} = {unit} {total}",
+ "ap.saved.n":"An adana {name}. {unit} {n} na nan.",
+ "ap.saved.packs":"An adana {name}. {unit} {n} na nan ({pack} {packs} da {loose}).",
+ "ap.err.name":"Rubuta sunan kaya, haruffa 2 ko fiye.",
+ "ap.err.unit":"Faɗi abin da kake kiran ɗaya, kamar sachet.",
+ "ap.err.price":"Shigar da farashin {unit} ɗaya.",
+ "ap.err.stock":"Duba nawa kake da shi: cikakken lamba har zuwa 100,000.",
+ "ap.err.packprice":"Shigar da farashin {pack} ɗaya.",
+ "ap.ws.q":"Farashin dillali",
+ "ap.err.cost":"Duba nawa {unit} ɗaya ke kashe maka.",
+ "rs.came":"Yaya ya zo?",
+ "rs.single":"{unit} ɗaya-ɗaya",
+ "rs.inpacks":"A {pack}",
+ "rs.inpacks.new":"A kwali ko fakiti",
+ "rs.howmany.pack":"{pack} nawa?",
+ "rs.howmany.unit":"{unit} nawa?",
+ "rs.cost.pack":"Nawa {pack} ɗaya ya kashe maka?",
+ "rs.cost.unit":"Nawa {unit} ɗaya ya kashe maka?",
+ "rs.cost.each":"= {amount} kowane {unit}",
+ "rs.margin":"Kana sayar da {unit} ɗaya a {price}, don haka kana samun {margin}.",
+ "rs.loss":"Za ka yi asarar {amount} a kowane {unit} a farashin yau.",
+ "rs.reprice":"Canja farashin sayarwa?",
+ "rs.price":"Farashinka na {unit} ɗaya",
+ "rs.packprice":"Farashinka na {pack} ɗaya",
+ "pr.est.margin":"Ci gaba da {margin} a kowanne: {price}",
+ "pr.est.pack":"Daga farashin {pack}: kusan {price} kowanne",
+ "pr.est.size":"{size} × farashinka na ɗaya = {price}",
+ "pr.est.use":"Yi amfani da {price}",
+ "rs.saved.packs":"An ƙara {pack} {packs} ({unit} {n}) zuwa {name}. Yanzu {unit} {total} na nan.",
+ "rs.saved.units":"An ƙara {unit} {n} zuwa {name}. Yanzu {unit} {total} na nan.",
+ "rs.priced":"Farashin {unit} ɗaya yanzu {price} ne.",
+ "rs.packnoprice":"Ƙara farashin {pack} don sayarwa a {pack}.",
+ "rs.err.qty":"Shigar da nawa suka iso, 1 ko fiye.",
+ "rs.now":"{name} yana da {unit} {n} yanzu.",
+ "pr.each":"{pack} ɗaya ya kai kusan {price} kowanne",
+ "log.f.sold":"Sayarwa",
+ "log.f.arrived":"Sabon kaya",
+ "log.f.count":"Ƙirge",
+ "rs.err.big":"Wannan ya yi yawa a ƙara a lokaci ɗaya. Duba lambar.",
+ "cust.err":"Saka suna. Idan ka saka lambar waya, ka duba ta.",
+ "cust.saved":"An ajiye {name}.",
+ "tk.clearcart":"Share",
+ "tk.clearcart.aria":"Cire duk kayan wannan siyarwa",
+ "tk.cartcleared":"An cire duk kayan.",
+ "col.how":"Ta yaya suka biya?",
+ "col.amount.transfer":"Nawa suka tura?",
+ "col.amount.pos":"Nawa aka biya ta POS?",
+ "col.given":"da suka bayar",
+ "col.split.first":"Ƙara kowane ɓangare na kuɗin. Kuɗin hannu da farko, sannan tura kuɗi ko POS.",
+ "col.split.remove":"Cire ɓangaren {method}",
+ "col.fb.recv":"An karɓa yanzu",
+ "col.fb.wait":"Yana jira ka duba",
+ "col.wait.note":"Za mu sa shi yana jira har sai ka duba ya iso. Har yanzu suna bin sa har lokacin.",
+ "col.over":"Wannan ya fi abin da {name} yake bi. {amount} ne ya rage.",
+ "col.nothing":"Babu abin da ya rage don karɓa a wannan sayarwa. Duba kuɗin da ke jira tukuna.",
+ "col.waitline":"{amount} yana jira ka duba",
+ "col.paidsofar":"An biya {paid} cikin {total} zuwa yanzu",
+ "col.err.cash":"Sa alama cewa kuɗin hannun yana hannunka.",
+ "col.err.reason":"Faɗi abin da ya faru, don rubutun ya fito fili.",
+ "col.title.wait":"Yana jira",
+ "col.o.wait":"{amount} yana jira. Duba ya iso kafin ka ƙirga shi.",
+ "col.o.mix":"An karɓi {received} kuɗin hannu. {waiting} yana jira.",
+ "col.o.wait.2":"Har yanzu suna bin ɓangaren da ke jira har sai ka duba shi.",
+ "col.check.title":"Duba kuɗin da aka karɓa",
+ "col.check.sub":"{method} daga {name}",
+ "col.check.bank":"Buɗe manhajar bankinka ka nemi {amount}.",
+ "col.check.pos":"Duba takardar POS ko tarihin POS don {amount}.",
+ "col.check.landed":"Ya iso",
+ "col.check.not":"Bai iso ba",
+ "col.check.reason":"Idan bai iso ba, me ya faru?",
+ "col.check.done":"An riga an duba wannan kuɗin.",
+ "col.o.checked.t":"An duba kuɗin",
+ "col.o.checked":"An karɓi {amount} daga {name}.",
+ "col.o.checked.2":"An cire shi daga abin da suke bi.",
+ "col.o.not.t":"An sa bai iso ba",
+ "col.o.not":"{amount} ya koma kan abin da {name} yake bi.",
+ "col.o.not.2":"Dalilin yana cikin tarihinsu.",
+ "col.by":"{name} ne ya karɓa",
+ "col.checkedby":"{name} ne ya duba",
+ "col.row":"An biya ta {method}",
+ "col.notrecv":"Bai iso ba",
+ "sv.col.recv":"An karɓi {amount} ta {method}",
+ "sv.col.pending":"{amount} ta {method}, yana jira ka duba",
+ "sv.col.not":"{amount} ta {method} bai iso ba",
 }};
 
 
@@ -9731,12 +10406,13 @@ function itemsTotalKobo(products,items){
  return cartLinesFor(products,cart).reduce((n,l)=>n+l.quantity*l.sellingPriceKobo,0);
 }
 // Can this pack and wholesale setup be saved? Returns an error sentence or ''.
+// Spec 1 (decision 161): a pack that is not cheaper per unit is a soft warning, never a block (packNotCheaper).
+const packNotCheaper=(sellingPriceKobo,pack)=>Boolean(pack&&pack.size>=2&&pack.priceKobo>0&&pack.priceKobo>=pack.size*sellingPriceKobo);
 function checkPricing({sellingPriceKobo,pack,wholesale}){
  if(pack){
   if(!Number.isSafeInteger(pack.size)||pack.size<2||pack.size>10000)return 'A pack holds 2 or more units.';
   if(!pack.unit)return 'Choose what the pack is called.';
   if(!Number.isSafeInteger(pack.priceKobo)||pack.priceKobo<=0)return 'Give the pack a price.';
-  if(pack.priceKobo>=pack.size*sellingPriceKobo)return `A pack should cost less than ${pack.size} loose units, or nobody will buy it.`;
  }
  if(wholesale){
   if(!Number.isSafeInteger(wholesale.minQty)||wholesale.minQty<2||wholesale.minQty>100000)return 'Wholesale starts from 2 or more units.';
@@ -9758,7 +10434,7 @@ const packProfit=p=>hasPack(p)&&p.buyingCostKobo!==null&&p.buyingCostKobo!==unde
 // Each-price inside a pack, in whole naira. When the pack does not divide evenly, it says about.
 const eachLabel=(packKobo,size,money)=>{const v=packKobo/size,w=Math.round(v/100)*100;return (Math.abs(v-w)<1?'':'about ')+money(w);};
 
-__exports.cartLinesFor=cartLinesFor;__exports.itemsTotalKobo=itemsTotalKobo;__exports.checkPricing=checkPricing;__exports.stockPhrase=stockPhrase;__exports.PACK_KEY=PACK_KEY;__exports.baseQty=baseQty;__exports.lineKey=lineKey;__exports.hasPack=hasPack;__exports.hasWholesale=hasWholesale;__exports.unitPrice=unitPrice;__exports.packName=packName;__exports.packProfit=packProfit;__exports.eachLabel=eachLabel;
+__exports.cartLinesFor=cartLinesFor;__exports.itemsTotalKobo=itemsTotalKobo;__exports.checkPricing=checkPricing;__exports.stockPhrase=stockPhrase;__exports.PACK_KEY=PACK_KEY;__exports.baseQty=baseQty;__exports.lineKey=lineKey;__exports.hasPack=hasPack;__exports.hasWholesale=hasWholesale;__exports.unitPrice=unitPrice;__exports.packName=packName;__exports.packNotCheaper=packNotCheaper;__exports.packProfit=packProfit;__exports.eachLabel=eachLabel;
 });
 __d("app/staging/dates.mjs",function(__exports,__r){
 // Dates shown to people, in the shop's language and Lagos time. Pidgin uses Nigerian English names.
@@ -10072,23 +10748,33 @@ function stockLogView(log,p){
  }
  return out;
 }
-function productScreen(state){
- const s=state.snapshot,p=s.products.find(x=>x.id===state.productId);if(!p)return back('stock',t('stock.product'))+'<div class="owner-empty"><strong>'+t('ui.product-not-found')+'</strong></div>';
- const owner=s.role==='owner',log=stockLogView(stockLog(state,p).slice(0,30),p),k=stockStatus(p),low=p.lowStockAt??DEFAULT_LOW,n=p.stockOnHand;
- const pill=p.archived?['mute','minus',t('stock.pill.removed')]:{ok:['ok','check',t('stock.pill.ok')],low:['wait','clock',t('stock.pill.low',{n})],out:['can','x',t('stock.pill.out')],uncounted:['wait','circle-alert',t('stock.pill.uncounted')]}[k];
+// Pieces of the product page, shared with the React app (stage 4).
+function productCostHtml(p,owner){
  const margin=owner&&p.buyingCostKobo?Math.round((p.sellingPriceKobo-p.buyingCostKobo)*100/p.sellingPriceKobo):null;
  const cost=!owner||p.buyingCostKobo===undefined?'':p.buyingCostKobo===null
   ?`<div class="note-card wait"><span class="srow-tile wait" aria-hidden="true">${icon('circle-alert',22,'fill')}</span><div><strong>${t('ui.no-buying-price-yet')}</strong><span>${t('stock.cost.hint')}</span></div><button type="button" class="owner-outline" data-route="edit-product">${t('ui.add-buying-price')}</button></div>`
   :`<div class="cost-card"><div><small>${t('ui.you-bought-at')}</small><strong>${money(p.buyingCostKobo)}</strong></div><div><small>${t('ui.you-keep-about')}</small><strong>${money(p.sellingPriceKobo-p.buyingCostKobo)}</strong><small>${t('stock.cost.each')}${margin!==null?t('stock.cost.margin',{pct:margin}):''}</small></div>${margin!==null?`<div class="margin-bar" role="img" aria-label="${t('stock.cost.margin.aria',{pct:margin})}"><i style="width:${Math.max(4,Math.min(100,margin))}%"></i></div>`:''}</div>`;
+ return cost;
+}
+const LOG_FILTERS=['all','sold','arrived','count'];
+function productLogHtml(state,p,filter='all'){
+ const log=stockLogView(stockLog(state,p).slice(0,60),p).filter(x=>filter==='all'||(filter==='count'?['count','writeoff'].includes(x.e.kind):x.e.kind===filter)).slice(0,30);
  const logRow=({e,left})=>{const [ic,tone]=LOG[e.kind]||['minus','mute'];
   const title={sold:t('stock.log.sold'),arrived:t('stock.log.arrived'),count:t('stock.log.count'),created:t('stock.log.created'),returned:t('stock.log.returned'),writeoff:t('stock.log.writeoff')}[e.kind]||t('stock.log.other');
   const d=e.delta||0,delta=e.kind==='created'?'':d===0?'0':`${d>0?'+':'−'}${Math.abs(d)}`;
   return `<div class="arow"><span class="srow-tile sm ${tone}" aria-hidden="true">${icon(ic,18,'fill')}</span><div><strong>${title}</strong><small>${[fmtWhen(e.at),reasonLabel(e.reason),e.note].filter(Boolean).map(esc).join(' · ')}</small></div><div class="arow-n"><b class="${d>0?'up':d<0?'down':''}">${delta}</b>${left!==null?`<small>${t('stock.log.left',{n:left})}</small>`:''}</div></div>`;};
+ return `<div class="arow-list">${log.map(logRow).join('')||'<div class="owner-empty"><strong>'+t('ui.no-activity-yet')+'</strong><span>'+t('stock.log.empty')+'</span></div>'}</div>`;
+}
+function productScreen(state){
+ const s=state.snapshot,p=s.products.find(x=>x.id===state.productId);if(!p)return back('stock',t('stock.product'))+'<div class="owner-empty"><strong>'+t('ui.product-not-found')+'</strong></div>';
+ const owner=s.role==='owner',k=stockStatus(p),low=p.lowStockAt??DEFAULT_LOW,n=p.stockOnHand;
+ const pill=p.archived?['mute','minus',t('stock.pill.removed')]:{ok:['ok','check',t('stock.pill.ok')],low:['wait','clock',t('stock.pill.low',{n})],out:['can','x',t('stock.pill.out')],uncounted:['wait','circle-alert',t('stock.pill.uncounted')]}[k];
+ const cost=productCostHtml(p,owner);
  return `${back('stock',t('stock.product'))}<section class="prod-hero"><strong class="cust-name">${esc(p.name)}</strong><small>${t('stock.soldper',{unit:esc(p.unit)})}</small><span class="f-chip ${pill[0]}">${icon(pill[1],16)}<span>${pill[2]}</span></span></section>
  <div class="fig-grid"><div class="fig"><small>${t('ui.on-hand')}</small><strong>${n===null||n===undefined?'—':n}</strong><small>${n===null||n===undefined?t('stock.count.start'):hasPack(p)?esc(stockPhrase(p)).replace(/^[0-9]+ [^·]*· /,''):esc(p.unit)}</small></div><div class="fig"><small>${t('ui.selling-price')}</small><strong>${money(p.sellingPriceKobo)}</strong><small>${t('stock.per',{unit:esc(p.unit)})}</small></div></div>
  ${cost}${pricingCards(p,owner)}<p class="hint-line">${icon('bell',16)}<span>${t('stock.warnline',{n:low})}</span></p>
  ${owner&&p.archived?`<div class="product-actions"><button class="f-main-button" data-restore-product="1"><span>${t('ui.bring-back-to-shop')}</span><span class="f-action-icon" aria-hidden="true">${icon('plus')}</span></button><p class="hint-line">${icon('circle-alert',16)}<span>${t('stock.hidden')}</span></p></div>`:owner?`<div class="product-actions"><button class="f-main-button" data-route="restock"><span>${t('ui.new-stock-arrived')}</span><span class="f-action-icon" aria-hidden="true">${icon('plus')}</span></button><div class="btn-pair"><button class="owner-outline" data-route="count">${t('ui.recount-stock')}</button><button class="owner-outline" data-route="edit-product">${t('ui.edit-product')}</button></div><button type="button" class="danger-link" data-route="remove-product">${icon('minus',16)} ${t('ui.remove-from-shop')}</button></div>`:''}
- <div class="sec-head"><h2>${t('ui.stock-activity')}</h2></div><div class="arow-list">${log.map(logRow).join('')||'<div class="owner-empty"><strong>'+t('ui.no-activity-yet')+'</strong><span>'+t('stock.log.empty')+'</span></div>'}</div>`;
+ <div class="sec-head"><h2>${t('ui.stock-activity')}</h2></div>${productLogHtml(state,p)}`;
 }
 function countFeedback(state){
  const p=state.snapshot.products.find(x=>x.id===state.productId),raw=String(state.countGiven??'').trim();
@@ -10184,7 +10870,7 @@ function pricingCards(p,owner){
 }
 
 
-__exports.stockStatus=stockStatus;__exports.filterProducts=filterProducts;__exports.chipCounts=chipCounts;__exports.parsePasteList=parsePasteList;__exports.stockLog=stockLog;__exports.stockLine=stockLine;__exports.stockList=stockList;__exports.stockLogView=stockLogView;__exports.countFeedback=countFeedback;__exports.pastePreview=pastePreview;__exports.unitField=unitField;__exports.nameHint=nameHint;__exports.dupScreen=dupScreen;__exports.removeBlockers=removeBlockers;__exports.pricingFields=pricingFields;__exports.pricingCards=pricingCards;__exports.STOCK_ROUTES=STOCK_ROUTES;__exports.COUNT_REASONS=COUNT_REASONS;__exports.stockRoutes=stockRoutes;__exports.PACK_UNITS=PACK_UNITS;__exports.stockPhrase=stockPhrase;
+__exports.stockStatus=stockStatus;__exports.filterProducts=filterProducts;__exports.chipCounts=chipCounts;__exports.parsePasteList=parsePasteList;__exports.stockLog=stockLog;__exports.stockLine=stockLine;__exports.stockList=stockList;__exports.stockLogView=stockLogView;__exports.productCostHtml=productCostHtml;__exports.productLogHtml=productLogHtml;__exports.countFeedback=countFeedback;__exports.stockRoute=stockRoute;__exports.pastePreview=pastePreview;__exports.unitField=unitField;__exports.nameHint=nameHint;__exports.dupScreen=dupScreen;__exports.removeBlockers=removeBlockers;__exports.removeScreen=removeScreen;__exports.pricingFields=pricingFields;__exports.pricingCards=pricingCards;__exports.STOCK_ROUTES=STOCK_ROUTES;__exports.COUNT_REASONS=COUNT_REASONS;__exports.LOG_FILTERS=LOG_FILTERS;__exports.stockRoutes=stockRoutes;__exports.PACK_UNITS=PACK_UNITS;__exports.stockPhrase=stockPhrase;
 });
 __d("app/staging/returns.mjs",function(__exports,__r){
 // Returns, refunds and who may confirm. Pure functions: no screens, no storage.
@@ -10410,7 +11096,8 @@ function cashOfSale(s){
 function expectedCash({sales=[],collections=[],refunds=[],paidOutKobo=0,now=Date.now()}){
  const d=dayOf(now),there=at=>dayOf(at)===d;
  const cashSalesKobo=sum(sales.filter(s=>there(s.occurredAt)),cashOfSale);
- const collectedKobo=sum(collections.filter(x=>there(x.at)),x=>x.amountKobo);
+ // Collections: only cash that is received (165). Transfer and POS collections go to the bank, waiting ones count nowhere.
+ const collectedKobo=sum(collections.filter(x=>there(x.at)&&(x.method||'cash')==='cash'&&(x.status||'received')==='received'),x=>x.amountKobo);
  const refundsKobo=sum(refunds.filter(x=>x.method==='cash'&&there(x.at)),x=>x.amountKobo);
  const expectedKobo=Math.max(0,cashSalesKobo+collectedKobo-refundsKobo-paidOutKobo);
  return {cashSalesKobo,collectedKobo,refundsKobo,paidOutKobo,expectedKobo};
@@ -10460,7 +11147,7 @@ const submit=label=>`<div class="kb-bar in-scroll flat"><button type="submit" cl
 const row=(label,amount,cls='')=>`<div class="cash-row ${cls}"><span>${label}</span><strong>${amount}</strong></div>`;
 
 function cashInputs(s,day,paidOutKobo=0,now=Date.now()){
- return expectedCash({sales:s.sales,collections:s.cashInputs?.collections||[],refunds:s.cashInputs?.refunds||[],paidOutKobo,now});
+ return expectedCash({sales:s.sales,collections:s.cashInputs?.collections||s.collections||[],refunds:s.cashInputs?.refunds||[],paidOutKobo,now});
 }
 const streakText=n=>t('cash.streak',{count:n});
 const resultLine=(state,diffKobo)=>state==='match'?t('cash.match'):state==='short'?t('cash.short',{amount:money(diffKobo)}):t('cash.over',{amount:money(diffKobo)});
@@ -11430,7 +12117,8 @@ const arrow=()=>`<span class="f-action-icon" aria-hidden="true">${globalThis.Fiy
 const pill=()=>{const off=globalThis.navigator?.onLine===false;return `<span class="mode-pill ${off?'off':'on'}" role="status"><i aria-hidden="true"></i>${t(off?'common.offline':'common.online')}</span>`;};
 const ic=(n,s=20,w)=>globalThis.FiyesiIcons?.render(n,s,'owner-icon',w)||'';
 // Top of every sign-in screen: back (or the wordmark on Welcome), then the language button and the connection pill (decision 148).
-const top=(back='')=>`<div class="g-top">${back?`<button type="button" class="till-close" data-action="${back}" aria-label="Back">${ic('arrow-left',20)}</button>`:wordmark('Fiyesi','f-wordmark g-mark')}<span class="g-top-r">${langButton('lang-btn on-scene')}${pill()}</span></div>`;
+const gateTop=(back='')=>`<div class="g-top">${back?`<button type="button" class="till-close" data-action="${back}" aria-label="Back">${ic('arrow-left',20)}</button>`:wordmark('Fiyesi','f-wordmark g-mark')}<span class="g-top-r">${langButton('lang-btn on-scene')}${pill()}</span></div>`;
+const top=gateTop;
 const err=m=>m?`<p class="g-err" role="alert"><b aria-hidden="true">!</b><span>${esc(m)}</span></p>`:'';
 const main=(label,{busy=false,disabled=false,action='',type='button'}={})=>`<button type="${type}" class="f-main-button" ${action?`data-action="${action}"`:''} ${disabled||busy?'disabled':''}><span>${busy?'<i class="g-spin"></i>':''}${esc(label)}</span>${busy?'':arrow()}</button>`;
 const side=(label,action)=>`<button type="button" class="owner-outline" data-action="${action}">${esc(label)}</button>`;
@@ -11472,7 +12160,7 @@ function gateBody(state){
  return `<form id="auth-code-form" class="staging-entry f-gate g-step ob" novalidate>${obScene(top('auth-change'))}<h1>${esc(t('gate.code.title'))}</h1><p>${esc(t('gate.code.sent',{phone:a.phone}))}</p><label for="auth-code">${esc(t('gate.code.label'))}</label><input class="text-field g-code" id="auth-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" value="${esc(a.code)}" ${locked||a.busy?'readonly':''} ${a.kind==='wrong-code'?'aria-invalid="true"':''}>${err(msg)}${!locked&&!again?`<p class="g-help" id="auth-timer">${esc(t('gate.code.timer',{s:String(st.secondsToResend).padStart(2,'0')}))}</p>`:''}<div class="kb-bar">${locked?side(t('gate.code.change'),'auth-change'):again?main(t('gate.code.resend'),{action:'auth-resend'})+side(t('gate.code.whatsapp'),'auth-whatsapp'):main(a.busy?t('gate.code.checking'):t('gate.code.confirm'),{busy:a.busy,disabled:a.code.length!==6,type:'submit'})}</div></form>`;
 }
 
-__exports.languagePicker=languagePicker;__exports.languageChips=languageChips;__exports.gateMessage=gateMessage;__exports.renderGate=renderGate;__exports.obScene=obScene;
+__exports.languagePicker=languagePicker;__exports.languageChips=languageChips;__exports.gateMessage=gateMessage;__exports.renderGate=renderGate;__exports.gateTop=gateTop;__exports.obScene=obScene;
 });
 __d("app/staging/buzz.mjs",function(__exports,__r){
 // Buzz: ask the person who can confirm a payment to come and check it (decision 8, flow 9, decision 74).
@@ -12008,13 +12696,14 @@ function filterSales(sales,{q='',chip='all',customers=[],now=Date.now(),returns=
   if(chip==='all')return true;
   if(chip==='today')return day(s.occurredAt)===today;
   if(chip==='returns')return Boolean(requestFor(s,returns));
-  return saleKind(s)===chip;
+  // A waiting collection on an owing sale shows under Waiting too (165).
+  return saleKind(s)===chip||chip==='waiting'&&s.collectWaitingKobo>0;
  });
 }
 function saleCounts(sales,now=Date.now(),returns){
  const c={all:sales.length,today:0,waiting:0,owing:0,cancelled:0},today=day(now);
  if(returns)c.returns=sales.filter(s=>requestFor(s,returns)).length;
- for(const s of sales){if(day(s.occurredAt)===today)c.today++;const k=saleKind(s);if(c[k]!==undefined)c[k]++;}
+ for(const s of sales){if(day(s.occurredAt)===today)c.today++;const k=saleKind(s);if(c[k]!==undefined)c[k]++;if(k!=='waiting'&&s.collectWaitingKobo>0)c.waiting++;}
  return c;
 }
 function filterCustomers(customers,{q='',chip='all'}={}){
@@ -12044,7 +12733,8 @@ function saleTimeline(sale,collections=[],customers=[],h={}){
  else if(sale.paymentStatus==='pending')out.push({kind:'wait',title:t('sv.p.pending',{method:METHOD()[sale.paymentMethod]||t('sv.payment'),amount:money(sale.totalKobo)}),detail:t('ui.goods-are-held')});
  else if(sale.paymentStatus==='owing')out.push({kind:'owe',title:t('sv.owing.amt',{amount:money(sale.owingKobo??sale.totalKobo)}),detail:who||''});
  else if(sale.paymentStatus==='cancelled')out.push({kind:'bad',title:t('ui.sale-cancelled'),detail:t('ui.goods-were-not-released')});
- for(const c of collections.filter(x=>x.saleId===sale.id).sort((a,b)=>String(a.at).localeCompare(String(b.at))))out.push({kind:'ok',title:t('sv.collected.cash',{amount:money(c.amountKobo)}),at:c.at});
+ // Collections (165): method, status, who took it, who checked it, and the reason when it did not land.
+ for(const c of collections.filter(x=>x.saleId===sale.id).sort((a,b)=>String(a.at).localeCompare(String(b.at))))out.push(collectionLine(c));
  if(sale.paymentStatus==='owing'&&outstanding(sale)===0)out.push({kind:'ok',title:t('ui.balance-cleared')});
  for(const r of (h.returns||[]).filter(x=>x.saleId===sale.id).sort((a,b)=>String(a.at).localeCompare(String(b.at)))){
   const n=r.lines.reduce((m,l)=>m+l.quantity,0),items=t('sv.item',{count:n}),why=reasonOf(r.reasonId)?.label;
@@ -12054,6 +12744,12 @@ function saleTimeline(sale,collections=[],customers=[],h={}){
  }
  return out;
 }
+function collectionLine(c){
+ const st=c.status||'received',m=c.method||'cash',amount=money(c.amountKobo),method=METHOD()[m]||t('sv.payment');
+ const title=st==='pending'?t('sv.col.pending',{amount,method}):st==='not-received'?t('sv.col.not',{amount,method}):m==='cash'?t('sv.collected.cash',{amount}):t('sv.col.recv',{amount,method});
+ const detail=[c.byName?t('col.by',{name:c.byName}):'',c.checkedByName?t('col.checkedby',{name:c.checkedByName}):'',c.reason||''].filter(Boolean).join(' · ');
+ return {kind:st==='pending'?'wait':st==='not-received'?'bad':'ok',title,detail,at:c.at,check:st==='pending'?c.id:null};
+}
 // A customer's sales and collections, newest first.
 function customerHistory(customer,sales,collections){
  return [...sales.filter(s=>s.customerId===customer.id).map(s=>({kind:'sale',sale:s,at:s.occurredAt})),
@@ -12061,7 +12757,7 @@ function customerHistory(customer,sales,collections){
   .sort((a,b)=>String(b.at).localeCompare(String(a.at)));
 }
 function oldestOwingSale(customer,sales){
- return sales.filter(s=>s.customerId===customer.id&&outstanding(s)>0).sort((a,b)=>String(a.occurredAt).localeCompare(String(b.occurredAt)))[0]||null;
+ return sales.filter(s=>s.customerId===customer.id&&outstanding(s)-(s.collectWaitingKobo||0)>0).sort((a,b)=>String(a.occurredAt).localeCompare(String(b.occurredAt)))[0]||null;
 }
 const KIND={done:['ok','check'],waiting:['wait','clock'],owing:['owe','owing'],cancelled:['can','x']};
 const dayLabel=(at,now)=>{const d=day(at);if(d===day(now))return t('sv.today');if(d===day(now-864e5))return t('sv.yesterday');try{return showDate(at,{weekday:'short',day:'numeric',month:'short'});}catch{return d;}};
@@ -12113,13 +12809,13 @@ function saleScreen(state,h){
  const known=owner&&sale.paymentStatus!=='cancelled'&&costs.length&&costs.every(v=>v!==null&&v!==undefined);
  const profit=known?`<span>${t('sv.profit',{amount:money(sale.lines.reduce((n,l,i)=>n+l.quantity*l.sellingPriceKobo-baseQty(l)*costs[i],0))})}</span>`:(owner&&sale.paymentStatus!=='cancelled'?'<span>'+t('ui.add-buying-prices-to-see-profit-on-t-cda7')+'</span>':'');
  const btn=(a,l)=>`<button class="f-main-button" ${a}><span>${l}</span><span class="f-action-icon" aria-hidden="true">${icon('arrow-right')}</span></button>`;
- const confirmer=canConfirmPayment(s.role,s.rules,sale.totalKobo),tooBig=sale.paymentStatus==='pending'&&overLimit(s.role,s.rules,sale.totalKobo),rets=s.returns||[],rt=returnTag(sale,rets);
- const actions=`${confirmer&&sale.paymentStatus==='pending'?btn(`data-review="${esc(sale.id)}"`,t('ui.check-payment')):''}<button type="button" class="owner-outline" data-receipt-open="${esc(sale.id)}">${icon('share',18)} ${t('sv.share')}</button>${owner&&outstanding(sale)>0?btn(`data-collect="${esc(sale.id)}"`,t('ui.collect-payment')):''}${canReturn(sale,rets)?`<button type="button" class="owner-outline" data-return-new="${esc(sale.id)}">${icon('undo-2',18)} ${owner?t('ui.return-items'):t('ui.request-a-return')}</button>`:''}`;
+ const waitCol=collections.find(c=>c.saleId===sale.id&&c.status==='pending'),confirmer=canConfirmPayment(s.role,s.rules,sale.totalKobo),tooBig=sale.paymentStatus==='pending'&&overLimit(s.role,s.rules,sale.totalKobo),rets=s.returns||[],rt=returnTag(sale,rets);
+ const actions=`${confirmer&&sale.paymentStatus==='pending'?btn(`data-review="${esc(sale.id)}"`,t('ui.check-payment')):''}<button type="button" class="owner-outline" data-receipt-open="${esc(sale.id)}">${icon('share',18)} ${t('sv.share')}</button>${owner&&waitCol?btn(`data-check-col="${esc(waitCol.id)}"`,t('ui.check-payment')):''}${owner&&outstanding(sale)-(sale.collectWaitingKobo||0)>0?(waitCol?`<button type="button" class="owner-outline" data-collect="${esc(sale.id)}">${t('ui.collect-payment')}</button>`:btn(`data-collect="${esc(sale.id)}"`,t('ui.collect-payment'))):''}${canReturn(sale,rets)?`<button type="button" class="owner-outline" data-return-new="${esc(sale.id)}">${icon('undo-2',18)} ${owner?t('ui.return-items'):t('ui.request-a-return')}</button>`:''}`;
  const tl=saleTimeline(sale,collections,s.customers,{...h,returns:rets});
  return `${back(to,t('sv.sale'))}<div class="sale-hero">${receiptStatus(sale).word==='PAID'?`<span class="stamp-static tone-ok" aria-hidden="true">${stampSvg('PAID',{id:'sh'})}</span>`:''}<strong class="hero-amt">${money(sale.totalKobo)}</strong><div class="tag-row">${h.chip(sale,s.role)}${rt?`<span class="f-chip ${rt.tone}">${icon(rt.icon,16)}<span>${rt.label}</span></span>`:''}</div><div class="hero-meta"><span>${esc(when(sale.occurredAt))}</span>${who?`<span>${avatar(who.name)}${esc(who.name)}</span>`:'<span>'+t('ui.walk-in-sale')+'</span>'}${goods?`<span>${goods}</span>`:''}${profit}</div></div>
  ${tooBig?`<div class="note-card wait"><span class="srow-tile wait" aria-hidden="true">${icon('clock',22,'fill')}</span><div><strong>${t('ui.above-your-limit')}</strong><span>${t('sv.over',{amount:money(sale.totalKobo),limit:s.rules.limitKobo==null?t('sv.anyamt'):money(s.rules.limitKobo)})}</span></div></div>`:''}${requestCard(sale,state)}${!confirmer||tooBig?buzzBlock(state,sale):''}${actions?`<div class="product-actions">${actions}</div>`:''}${confirmer&&sale.paymentStatus==='pending'?`<p class="hint-line">${icon('undo-2',16)}<span>${t('ui.buyer-no-longer-interested-open-chec-2a55')}</span></p>`:''}
  <div class="owner-headline"><h2>${t('ui.items')}</h2></div><div class="receipt">${sale.lines.map(l=>`<div class="receipt-row"><span class="qty">${l.quantity}</span><span class="rname">${esc(l.name)}<small>${t('rc.each',{price:money(l.sellingPriceKobo)})}</small></span><b>${money(l.quantity*l.sellingPriceKobo)}</b></div>`).join('')}<div class="receipt-total"><span>${t('ui.total')}</span><b>${money(sale.totalKobo)}</b></div></div>
- <div class="owner-headline"><h2>${t('ui.payments')}</h2></div><ol class="rail">${tl.map(e=>`<li class="rail-item is-${e.kind}"><strong>${esc(e.title)}</strong><small>${[e.at?when(e.at):'',e.detail].filter(Boolean).map(esc).join(' · ')}</small></li>`).join('')}</ol>`;
+ <div class="owner-headline"><h2>${t('ui.payments')}</h2></div><ol class="rail">${tl.map(e=>`<li class="rail-item is-${e.kind}"><strong>${esc(e.title)}</strong><small>${[e.at?when(e.at):'',e.detail].filter(Boolean).map(esc).join(' · ')}</small>${e.check&&owner?`<button type="button" class="link-btn" data-check-col="${esc(e.check)}">${t('ui.check-payment')}</button>`:''}</li>`).join('')}</ol>`;
 }
 function customersScreen(state){
  const s=state.snapshot,f=state.custFilter||{q:'',chip:'all'},c=customerCounts(s.customers);
@@ -12149,12 +12845,14 @@ function customerScreen(state,h){
  const s=state.snapshot,c=s.customers.find(x=>x.id===state.customerDetailId);
  if(!c)return back('customers',t('sv.customer'))+empty(t('ui.customer-not-found'),t('ui.it-may-have-been-removed'));
  const hist=customerHistory(c,s.sales,s.collections||[]),next=oldestOwingSale(c,s.sales),owing=c.owingKobo||0;
- const owingSales=s.sales.filter(x=>x.customerId===c.id&&outstanding(x)>0).length;
+ const owingSales=s.sales.filter(x=>x.customerId===c.id&&outstanding(x)>0).length,waiting=(s.collections||[]).filter(x=>x.customerId===c.id&&x.status==='pending').reduce((n,x)=>n+x.amountKobo,0);
+ const colRow=k=>{const st=k.status||'received',m=k.method||'cash',tone=st==='pending'?'wait':st==='not-received'?'can':'ok',ic={cash:'banknote',transfer:'landmark',pos:'pos'}[m]||'banknote';
+  return `<div class="srow is-collection"><span class="srow-tile ${tone}" aria-hidden="true">${icon(ic,22,'fill')}</span><span class="srow-name">${m==='cash'?t('ui.collected-cash'):t('col.row',{method:METHOD()[m]})}</span><span class="srow-amt${st==='not-received'?' struck':''}">${money(k.amountKobo)}</span><span class="srow-meta ${tone==='can'?'bad':tone}">${st==='pending'?t('sv.chip.waiting'):st==='not-received'?t('col.notrecv'):t('ui.received')}<span class="dim"> · ${esc(when(k.at))}${k.reason?' · '+esc(k.reason):''}</span></span>${st==='pending'?`<button type="button" class="link-btn" data-check-col="${esc(k.id)}">${t('ui.check-payment')}</button>`:''}</div>`;};
  const line=e=>e.kind==='collection'
-  ?`<div class="srow is-collection"><span class="srow-tile ok" aria-hidden="true">${icon('banknote',22,'fill')}</span><span class="srow-name">${t('ui.collected-cash')}</span><span class="srow-amt">${money(e.c.amountKobo)}</span><span class="srow-meta ok">${t('ui.received')}<span class="dim"> · ${esc(when(e.at))}</span></span></div>`
+  ?colRow(e.c)
   :saleRow(e.sale,state,true);
  return `${back('customers',t('sv.customer'))}<div class="cust-hero">${avatar(c.name,true)}<div><strong class="cust-name">${esc(c.name)}</strong>${c.phone?`<small>${esc(c.phone)}</small>`:''}</div></div>
- <div class="bal-card ${owing>0?'owe':'ok'}"><small>${owing>0?t('sv.chip.owing'):t('sv.balance')}</small><strong>${owing>0?money(owing):t('ui.nothing-owing')}</strong>${owingSales>1?`<small>${t('sv.across',{n:owingSales})}</small>`:''}${next?`<button class="f-main-button" data-collect="${esc(next.id)}"><span>${t('ui.collect-payment')}</span><span class="f-action-icon" aria-hidden="true">${icon('arrow-right')}</span></button>`:''}</div>
+ <div class="bal-card ${owing>0?'owe':'ok'}"><small>${owing>0?t('sv.chip.owing'):t('sv.balance')}</small><strong>${owing>0?money(owing):t('ui.nothing-owing')}</strong>${waiting>0?`<small class="owe-wait">${icon('clock',14,'fill')} ${t('col.waitline',{amount:money(waiting)})}</small>`:''}${owingSales>1?`<small>${t('sv.across',{n:owingSales})}</small>`:''}${next?`<button class="f-main-button" data-collect="${esc(next.id)}"><span>${t('ui.collect-payment')}</span><span class="f-action-icon" aria-hidden="true">${icon('arrow-right')}</span></button>`:''}</div>
  ${remindBlock(state,c,owing)}<div class="owner-headline"><h2>${t('ui.history')}</h2></div><div class="owner-section">${hist.map(line).join('')||empty(t('ui.no-history-yet'),t('ui.sales-and-collections-for-this-custo-e6d8'))}</div>`;
 }
 function salesRoutes(state,h){
@@ -12173,7 +12871,7 @@ function listDock(state){
  return `<div class="checkout-dock sell-dock search-dock" role="search"><div class="checkout-search-control sell-search">${icon('search',20)}<input id="${spec[0]}" type="search" aria-label="${esc(spec[1])}" autocomplete="off" placeholder="${esc(spec[1])}" value="${esc(spec[2]||'')}"></div></div>`;
 }
 
-__exports.saleKind=saleKind;__exports.filterSales=filterSales;__exports.saleCounts=saleCounts;__exports.filterCustomers=filterCustomers;__exports.customerCounts=customerCounts;__exports.saleTimeline=saleTimeline;__exports.customerHistory=customerHistory;__exports.oldestOwingSale=oldestOwingSale;__exports.statusText=statusText;__exports.saleRow=saleRow;__exports.salesList=salesList;__exports.offlineNote=offlineNote;__exports.customersList=customersList;__exports.salesRoutes=salesRoutes;__exports.listDock=listDock;__exports.SALES_ROUTES=SALES_ROUTES;
+__exports.saleKind=saleKind;__exports.filterSales=filterSales;__exports.saleCounts=saleCounts;__exports.filterCustomers=filterCustomers;__exports.customerCounts=customerCounts;__exports.saleTimeline=saleTimeline;__exports.collectionLine=collectionLine;__exports.customerHistory=customerHistory;__exports.oldestOwingSale=oldestOwingSale;__exports.statusText=statusText;__exports.saleRow=saleRow;__exports.salesList=salesList;__exports.offlineNote=offlineNote;__exports.customersList=customersList;__exports.remindBlock=remindBlock;__exports.salesRoutes=salesRoutes;__exports.listDock=listDock;__exports.SALES_ROUTES=SALES_ROUTES;
 });
 __d("app/staging/activity-view.mjs",function(__exports,__r){
 // Activity log: who did what, and when. Owner only.
@@ -12309,7 +13007,13 @@ function ticket(state,basket){
   return `<div class="tk-line"><div class="tk-step"><button type="button" data-quantity="-1" data-product="${esc(p.id)}" ${isPack?'data-pack="1" ':''}aria-label="${esc(t('till.remove',{label}))}">${icon('minus',14)}</button><output aria-label="${esc(t('till.qty',{label}))}">${l.quantity}</output><button type="button" data-quantity="1" data-product="${esc(p.id)}" ${isPack?'data-pack="1" ':''}aria-label="${esc(t('till.add',{label}))}" ${can?'':'disabled'}>${icon('plus',14)}</button></div><span class="tk-name">${esc(isPack?`${p.name} · ${p.pack.unit}`:l.name)}${l.tier==='wholesale'?` <b class="tk-ws">${t('till.wholesale')}</b>`:''}</span><span class="tk-amt">${money(l.quantity*l.sellingPriceKobo)}</span></div>`;}).join('');
  // Decision 140: on phones the lines fold behind the items button so the products keep the screen; wide screens always show them.
  const open=!!state.ticketOpen;
- return `<div class="till-ticket${open?' open':''}"><div class="tk-lines" id="tk-lines" aria-label="${esc(t('till.ticket'))}">${lines}</div><div class="tk-bar"><button type="button" class="tk-toggle" data-toggle="ticketOpen" aria-expanded="${open}" aria-controls="tk-lines"><span>${items(n)}</span>${icon('chevron-down',16)}</button><button type="button" class="till-charge" data-sell-step="review"><span>${t('till.charge.go')}</span><strong>${basket.valid?money(basket.totalKobo):t('till.check')}</strong></button></div></div>`;
+ return `<div class="till-ticket${open?' open':''}"><div class="tk-lines" id="tk-lines" aria-label="${esc(t('till.ticket'))}">${clearHead(n)}${lines}</div><div class="tk-bar"><button type="button" class="tk-toggle" data-toggle="ticketOpen" aria-expanded="${open}" aria-controls="tk-lines"><span>${items(n)}</span>${icon('chevron-down',16)}</button><button type="button" class="till-charge" data-sell-step="review"><span>${t('till.charge.go')}</span><strong>${basket.valid?money(basket.totalKobo):t('till.check')}</strong></button></div></div>`;
+}
+// Clear (owner, 16 Nov: "make sure ... there's a clear cart button or icon"): top of the open ticket, Undo for 10 seconds.
+const clearHead=n=>`<div class="tk-head"><span>${esc(items(n))}</span><button type="button" class="tk-clearall" data-cart-clear="1" aria-label="${esc(t('tk.clearcart.aria'))}">${icon('trash',16)}<span>${t('tk.clearcart')}</span></button></div>`;
+function cartToast(state,now=Date.now()){
+ const u=state.cartUndo;if(!u||now-u.at>=UNDO_MS)return '';
+ return `<div class="ctr-toast" role="status">${icon('check-circle',18,'fill')}<span>${esc(t('tk.cartcleared'))}</span><button type="button" class="link-btn" data-cart-undo="1">${t('ctr.undo')}</button></div>`;
 }
 // After a payment confirmed at the counter: one quiet line and Undo for 10 seconds (decision 111).
 function counterToast(state,now=Date.now()){
@@ -12321,7 +13025,7 @@ function tillItems(state,{isStaff,empty}){
  const tiles=found.rows.flatMap(p=>[tillTile(p,state.cart),...(hasPack(p)?[tillTile(p,state.cart,true)]:[])]).join('');
  const count=found.total===0?t('till.nomatch'):state.productQuery?t('till.matches',{shown:found.rows.length,count:found.total}):t('till.best',{count:found.total});
  const content=`<div class="till-head"><button type="button" class="till-close" data-route="${isStaff?'sales':'home'}" aria-label="${esc(t('till.close'))}">${icon('x',20)}</button><h1>${t('till.new')}</h1>${statusPill(state)}</div>
- ${counterToast(state)}<p id="product-result-count" class="till-count" role="status">${count}</p>
+ ${counterToast(state)}${cartToast(state)}<p id="product-result-count" class="till-count" role="status">${count}</p>
  <div class="counter-items till-grid" aria-label="${esc(t('till.products'))}">${tiles||empty(t('till.none'),s.products.length?t('till.none.try'):t('till.none.add'))}</div>`;
  const dock=`<div class="checkout-dock till-dock" id="checkout-dock" role="region" aria-label="${esc(t('till.dock'))}"><div class="checkout-search-control sell-search">${icon('search',18)}<input id="product-search" type="search" aria-label="${esc(t('till.search'))}" autocomplete="off" spellcheck="false" maxlength="120" placeholder="${esc(t('till.search.all',{n:found.total}))}" value="${esc(state.productQuery||'')}"></div>${ticket(state,basket)}</div>`;
  return {content,dock};
@@ -12374,7 +13078,7 @@ function savedSheet(state,o,{title,lines,synced}){
  <div class="saved-acts"><button type="button" class="f-main-button saved-next" data-action="next-sale"><span>${t('till.next')}</span><span class="f-action-icon" aria-hidden="true">${icon('arrow-right',20)}</span></button><div class="saved-two">${o.saleId?`<button type="button" class="owner-outline" data-receipt-open="${esc(o.saleId)}">${icon('share',18)} ${t('till.share')}</button>`:''}<button type="button" class="owner-outline" data-route="sales">${t('till.see')}</button></div></div></div>`;
 }
 
-__exports.tillProducts=tillProducts;__exports.tillTile=tillTile;__exports.counterToast=counterToast;__exports.tillItems=tillItems;__exports.payMeaning=payMeaning;__exports.tillPay=tillPay;__exports.savedSheet=savedSheet;__exports.PAY_TILES=PAY_TILES;
+__exports.tillProducts=tillProducts;__exports.tillTile=tillTile;__exports.cartToast=cartToast;__exports.counterToast=counterToast;__exports.tillItems=tillItems;__exports.payMeaning=payMeaning;__exports.tillPay=tillPay;__exports.savedSheet=savedSheet;__exports.PAY_TILES=PAY_TILES;__exports.clearHead=clearHead;
 });
 __d("app/staging/tab-icons.mjs",function(__exports,__r){
 // Tab icons drawn from the shop (decision 115), in style v2's mark tier (decision 130): the v2 palette, kola line, a hard kola
@@ -12544,6 +13248,133 @@ function friendly(message){
 
 __exports.friendly=friendly;
 });
+__d("app/staging/collect.mjs",function(__exports,__r){
+// Collecting owed money by cash, transfer, POS or split (Spec 4, decision 165). Pure rules shared by the app, the
+// stand-in server and the tests. Money is integer kobo. A transfer or POS collection is saved as waiting (pending): the
+// customer still owes it until someone allowed checks it landed (114). Older rows with no method are cash, received.
+const COLLECT_METHODS=['cash','transfer','pos','split'];
+const methodOf=c=>c.method||'cash';
+const statusOf=c=>c.status||'received';
+const sum=(rows,f=x=>x.amountKobo)=>rows.reduce((n,x)=>n+(f(x)||0),0);
+
+/** Waiting (pending) collections against one sale, in kobo. */
+function waitingFor(saleId,collections=[]){return sum(collections.filter(c=>c.saleId===saleId&&statusOf(c)==='pending'));}
+/** Waiting collections for one customer, in kobo. */
+function waitingForCustomer(customerId,collections=[]){return sum(collections.filter(c=>c.customerId===customerId&&statusOf(c)==='pending'));}
+/** Cash that went into the drawer from collections (received cash only). */
+const drawerCollections=(collections=[])=>collections.filter(c=>methodOf(c)==='cash'&&statusOf(c)==='received');
+
+/**
+ * What a collection would record. `owedKobo` is what the sale still owes (received collections already taken off);
+ * `waitingKobo` is what is already waiting to be checked. Nothing may pass owed − waiting; cash given above that is change.
+ * method 'cash'|'transfer'|'pos' uses `givenKobo`; 'split' uses `rows` [{method, amountKobo}].
+ * Returns {ok, payments:[{method,amountKobo}], receivedKobo, waitingKobo, changeKobo, leftKobo, openKobo} or {ok:false,error}.
+ * error: 'zero' (nothing entered), 'over' (non-cash above what is open), 'nothing-owed'.
+ */
+function planCollection({owedKobo,waitingKobo=0,method='cash',givenKobo=0,rows=[]}){
+ const openKobo=Math.max(0,owedKobo-waitingKobo);
+ if(openKobo<=0)return {ok:false,error:'nothing-owed',openKobo};
+ const parts=method==='split'?rows.filter(r=>r.amountKobo>0):givenKobo>0?[{method,amountKobo:givenKobo}]:[];
+ if(!parts.length)return {ok:false,error:'zero',openKobo};
+ const nonCash=sum(parts.filter(r=>r.method!=='cash')),cash=sum(parts.filter(r=>r.method==='cash'));
+ if(nonCash>openKobo)return {ok:false,error:'over',openKobo};
+ const cashApplied=Math.min(cash,openKobo-nonCash),changeKobo=cash-cashApplied;
+ if(cashApplied+nonCash<=0)return {ok:false,error:'over',openKobo};
+ const payments=[...(cashApplied>0?[{method:'cash',amountKobo:cashApplied}]:[]),...parts.filter(r=>r.method!=='cash').map(r=>({method:r.method,amountKobo:r.amountKobo}))];
+ return {ok:true,payments,receivedKobo:cashApplied,waitingKobo:nonCash,changeKobo,leftKobo:openKobo-cashApplied-nonCash,openKobo};
+}
+
+/** The server's check: payments as sent ({amountKobo} alone is cash, as before 165). Throws a code on a bad shape. */
+function collectionRows(data){
+ const rows=Array.isArray(data?.payments)?data.payments:[{method:'cash',amountKobo:data?.amountKobo}];
+ if(!rows.length||rows.length>4)throw Error('INVALID_COLLECTION');
+ for(const r of rows)if(!['cash','transfer','pos'].includes(r.method)||!Number.isSafeInteger(r.amountKobo)||r.amountKobo<=0)throw Error('INVALID_COLLECTION');
+ if(rows.filter(r=>r.method==='cash').length>1)throw Error('INVALID_COLLECTION');
+ return rows.map(r=>({method:r.method,amountKobo:r.amountKobo,status:r.method==='cash'?'received':'pending'}));
+}
+
+__exports.waitingFor=waitingFor;__exports.waitingForCustomer=waitingForCustomer;__exports.planCollection=planCollection;__exports.collectionRows=collectionRows;__exports.COLLECT_METHODS=COLLECT_METHODS;__exports.methodOf=methodOf;__exports.statusOf=statusOf;__exports.drawerCollections=drawerCollections;
+});
+__d("app/staging/collect-view.mjs",function(__exports,__r){
+// Collect payment on what a customer owes, by cash, transfer, POS or split, and checking a waiting one (Spec 4, 165).
+// No motion and no rewards on these screens (123). The rules live in collect.mjs.
+const {planCollection,waitingFor}=__r("app/staging/collect.mjs");
+const {listAccounts}=__r("app/staging/accounts.mjs");
+const {payToCard,hasAccount}=__r("app/staging/setup-view.mjs");
+const {MARKS,markSvg}=__r("app/staging/marks.mjs");
+const {t}=__r("packages/i18n/index.mjs");
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const icon=(n,s=20,w)=>globalThis.FiyesiIcons.render(n,s,'owner-icon',w);
+const money=v=>globalThis.FiyesiDomain.formatKobo(v);
+const naira=k=>k%100===0?String(k/100):(k/100).toFixed(2);
+const parse=raw=>{const v=String(raw??'').replace(/[,\s₦]/g,'');if(!v)return 0;return globalThis.FiyesiDomain.parseNaira(v);};
+const METHOD_LABEL=m=>({cash:t('pay.cash'),transfer:t('pay.transfer'),pos:t('pay.pos'),split:t('pay.split')})[m]||m;
+const TILES=[['cash','banknote'],['transfer','landmark'],['pos','pos'],['split','coins']];
+const errBlock=m=>`<p class="g-err" role="alert"><b aria-hidden="true">!</b><span>${esc(m)}</span></p>`;
+
+/** Everything the collect screen shows, from the app state. */
+function collectPlan(state){
+ const s=state.snapshot,sale=s?.sales.find(x=>x.id===state.reviewSaleId);
+ if(!sale)return {error:t('ui.sale-not-found'),balanceKobo:0,openKobo:0,raw:'',method:'cash'};
+ const method=state.collectMethod||'cash',owedKobo=sale.outstandingKobo??sale.totalKobo,pendingKobo=sale.collectWaitingKobo??waitingFor(sale.id,s.collections||[]);
+ // pendingKobo: already waiting to be checked; the plan's waitingKobo is what this collection would add.
+ const openKobo=Math.max(0,owedKobo-pendingKobo),customer=s.customers.find(c=>c.id===sale.customerId),base={sale,customer,method,owedKobo,pendingKobo,openKobo,balanceKobo:openKobo};
+ const raw=state.collectGiven??naira(openKobo),rowsRaw=state.collectRows||[];
+ let givenKobo=0,rows=[];
+ try{if(method==='split')rows=rowsRaw.map(r=>({method:r.method,amountKobo:parse(r.amount)}));else givenKobo=parse(raw);}catch(e){return {...base,raw,rowsRaw,error:e.message};}
+ const p=planCollection({owedKobo,waitingKobo:pendingKobo,method,givenKobo,rows});
+ const name=customer?.name||t('till.customer');
+ if(!p.ok)return {...base,raw,rowsRaw,givenKobo,error:p.error==='over'?t('col.over',{name,amount:money(openKobo)}):p.error==='nothing-owed'?t('col.nothing'):method==='split'?'':t('ui.enter-an-amount-above-zero'),empty:p.error==='zero'&&method==='split'};
+ // Kept for the cash fields the screen already had (appliedKobo, changeKobo, remainingKobo).
+ return {...base,...p,raw,rowsRaw,givenKobo,appliedKobo:p.receivedKobo+p.waitingKobo,remainingKobo:p.leftKobo,hasCash:p.receivedKobo>0||p.changeKobo>0};
+}
+function collectFeedback(state){
+ const p=collectPlan(state);
+ if(p.empty)return `<p class="quiet-copy">${t('col.split.first')}</p>`;
+ if(p.error)return errBlock(p.error);
+ const row=(l,v,cls='')=>`<div${cls?` class="${cls}"`:''}><span>${l}</span><b>${money(v)}</b></div>`;
+ return (p.changeKobo>0?`<div class="cash-change" role="status"><small>${t('ui.give-back')}</small><strong>${money(p.changeKobo)}</strong></div>`:'')
+  +`<div class="split-sum" role="status">${p.receivedKobo>0?row(t('col.fb.recv'),p.receivedKobo):''}${p.waitingKobo>0?row(t('col.fb.wait'),p.waitingKobo):''}${row(t('ui.still-owing'),p.owedKobo-p.receivedKobo,'split-total')}</div>`
+  +(p.waitingKobo>0?`<p class="cash-owing">${t('col.wait.note')}</p>`:p.owedKobo-p.receivedKobo===0?`<p class="cash-owing">${t('ui.this-clears-the-balance')}</p>`:'');
+}
+function splitRows(state){
+ const rows=state.collectRows||[];
+ return `<div class="split-editor"><div class="attendant-pay-label">${t('ui.payments')}</div>${rows.map((r,i)=>`<div class="split-row"><label for="col-split-${i}">${METHOD_LABEL(r.method)}${r.method==='cash'?' '+t('col.given'):''} (₦)</label><div class="split-row-inputs"><input class="text-field" id="col-split-${i}" data-col-split="${i}" inputmode="decimal" autocomplete="off" maxlength="12" value="${esc(r.amount)}" placeholder="0"><button type="button" class="owner-outline split-remove" data-col-split-remove="${i}" aria-label="${esc(t('col.split.remove',{method:METHOD_LABEL(r.method)}))}">${icon('x',18)}</button></div></div>`).join('')}<div class="split-add" role="group" aria-label="${t('ui.add-a-payment')}">${['cash','transfer','pos'].filter(m=>m!=='cash'||!rows.some(r=>r.method==='cash')).map(m=>`<button type="button" class="owner-outline" data-col-split-add="${m}">+ ${METHOD_LABEL(m)}</button>`).join('')}</div></div>`;
+}
+/** The collect screen. `submit` and `input` are the app's own form parts. */
+function collectScreen(state,{submit,input}){
+ const s=state.snapshot,p=collectPlan(state),sale=p.sale;if(!sale)return '';
+ const nm=p.customer?.name||t('till.customer'),ini=nm.split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+ const paid=Math.max(0,sale.totalKobo-p.owedKobo),pct=sale.totalKobo?Math.round(paid*100/sale.totalKobo):0,wpct=sale.totalKobo?Math.round(p.pendingKobo*100/sale.totalKobo):0,half=Math.max(100,Math.round(p.openKobo/200)*100),m=p.method;
+ const tiles=TILES.map(([k,ic])=>`<button type="button" class="pay-tile t-${k}" data-collect-method="${k}" aria-pressed="${m===k}">${MARKS[k]?markSvg(k,34):icon(ic,26,m===k?'fill':'bold')}<span>${METHOD_LABEL(k)}</span></button>`).join('');
+ const label=m==='cash'?t('ui.how-much-cash-did-they-give'):m==='transfer'?t('col.amount.transfer'):t('col.amount.pos');
+ const amount=m==='split'?splitRows(state):`<label for="collect-amount">${label}</label><div class="amount-field"><b aria-hidden="true">₦</b><input id="collect-amount" name="amount" required inputmode="decimal" autocomplete="off" maxlength="12" aria-label="${esc(label)}" value="${esc(p.raw)}"></div>
+  <div class="stock-chips"><button type="button" class="stock-chip" data-collect-fill="full" aria-pressed="${p.givenKobo===p.openKobo}">${t('collect.full',{amount:money(p.openKobo)})}</button>${half<p.openKobo?`<button type="button" class="stock-chip" data-collect-fill="half" aria-pressed="${p.givenKobo===half}">${t('collect.half',{amount:money(half)})}</button>`:''}</div>`;
+ const acct=m==='transfer'||m==='split'&&(state.collectRows||[]).some(r=>r.method==='transfer')?(hasAccount(s.account)?payToCard(listAccounts(s)):''):'';
+ const cashBox=m==='cash'||m==='split'&&(state.collectRows||[]).some(r=>r.method==='cash')?`<label class="local-policy"><input type="checkbox" name="received" required> ${t('ui.i-have-the-cash-in-hand')}</label>`:'';
+ return `<div class="staging-back-row"><button class="staging-back" data-route="sale" aria-label="${t('ui.back-to-the-sale')}">${icon('arrow-left')}</button><h1>${t('ui.collect-payment')}</h1></div>
+ <div class="cust-hero"><span class="avatar owe big" aria-hidden="true">${esc(ini)}</span><div><strong class="cust-name">${esc(nm)}</strong><small>${t('col.saleof',{amount:money(sale.totalKobo)})}</small></div></div>
+ <div class="owe-hero"><div><small>${t('ui.still-owing')}</small><strong>${money(p.owedKobo)}</strong>${p.pendingKobo>0?`<small class="owe-wait">${icon('clock',14,'fill')} ${t('col.waitline',{amount:money(p.pendingKobo)})}</small>`:''}</div><div class="owe-meter"><div class="margin-bar" role="img" aria-label="${pct}% paid"><i style="width:${Math.max(pct,2)}%"></i>${wpct>0?`<i class="wait" style="width:${wpct}%"></i>`:''}</div><small>${t('col.paidsofar',{paid:money(paid),total:money(sale.totalKobo)})}</small></div></div>
+ <form id="collect-owing" class="field-stack"><div class="attendant-pay-label">${t('col.how')}</div><div class="pay-tiles col-tiles" role="group" aria-label="${esc(t('col.how'))}">${tiles}</div>
+ ${amount}${acct}<div id="collect-feedback">${collectFeedback(state)}</div>
+ ${input(t('ui.note-optional'),'reason','maxlength="300" placeholder="'+esc(t('ph.cash'))+'"')}${cashBox}${submit(t('ui.save-collection'))}</form>`;
+}
+/** Check a waiting collection: it landed, or it did not (with a reason). */
+function checkCollectionScreen(state,{field}){
+ const s=state.snapshot,c=(s.collections||[]).find(x=>x.id===state.collectionId),busy=state.busy;
+ const head=`<div class="staging-back-row"><button class="staging-back" data-route="${state.collectionFrom||'sale'}" aria-label="${t('ui.back')}">${icon('arrow-left')}</button><h1>${t('col.check.title')}</h1></div>`;
+ if(!c||c.status!=='pending')return head+`<p class="quiet-copy">${t('col.check.done')}</p>`;
+ const who=s.customers.find(x=>x.id===c.customerId)?.name||t('till.customer');
+ const acct=c.method==='transfer'&&hasAccount(s.account)?payToCard(listAccounts(s)):'';
+ return head+`<div class="pay-amount"><small>${t('col.check.sub',{method:METHOD_LABEL(c.method),name:who})}</small><strong>${money(c.amountKobo)}</strong></div>
+ ${acct}<p class="pay-mean wait" role="status">${icon('clock',18,'fill')}<span>${c.method==='pos'?t('col.check.pos',{amount:money(c.amountKobo)}):t('col.check.bank',{amount:money(c.amountKobo)})}</span></p>
+ ${c.byName?`<p class="quiet-copy">${t('col.by',{name:esc(c.byName)})}${c.note?' · '+esc(c.note):''}</p>`:''}
+ <button type="button" class="f-main-button" data-check-collection="received" ${busy?'disabled':''}><span>${t('col.check.landed')}</span><span class="f-action-icon" aria-hidden="true">${icon('check')}</span></button>
+ <form id="collection-not-received" class="field-stack">${field(t('col.check.reason'),'reason','text','required minlength="3" maxlength="300"')}<button class="owner-outline" type="submit" ${busy?'disabled':''}>${t('col.check.not')}</button></form>`;
+}
+
+__exports.collectPlan=collectPlan;__exports.collectFeedback=collectFeedback;__exports.collectScreen=collectScreen;__exports.checkCollectionScreen=checkCollectionScreen;__exports.METHOD_LABEL=METHOD_LABEL;
+});
 __d("app/staging/view.mjs",function(__exports,__r){
 const {eachLabel}=__r("app/staging/pricing.mjs");
 const {wordmark}=__r("app/staging/brand.mjs");
@@ -12589,6 +13420,7 @@ const {canCounterConfirm}=__r("app/staging/counter.mjs");
 const {friendly}=__r("app/staging/errors.mjs");
 const {searchProducts,searchCustomers,cartSummary}=__r("app/staging/fast-sale.mjs");
 const {shapeAttrs}=__r("app/staging/money-status.mjs");
+const {collectPlan,collectFeedback,collectScreen,checkCollectionScreen}=__r("app/staging/collect-view.mjs");
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const icon=(name,size=20,w)=>globalThis.FiyesiIcons.render(name,size,'owner-icon',w);
 const money=v=>(v<0?'−':'')+globalThis.FiyesiDomain.formatKobo(Math.abs(v));
@@ -12615,7 +13447,7 @@ function renderStagingRaw(state){
  // Feature intros (decision 118): a full screen with no bar, so the choice is the only thing on it.
  const told=state.salesTools&&toldFor(s,state.seenIntros||new Set());
  if(told||(route==='intro'&&state.intro))return `<div class="owner-screen intro-mode"><div class="owner-scroll">${told?introScreen({key:told,mode:'told',byName:(s.people||[]).find(p=>p.role==='owner')?.name||''}):introScreen(state.intro)}</div></div>`;
- const nav=s.role==='security'?[['gate',t('gate.title'),'shield-check','gate'],['gateshift',t('gate.tab.shift'),'clock','shift'],['profile',t('gate.tab.me'),'user','me']]:isStaff?[['checkout',t('nav.sell'),'plus','sell'],['sales',t('nav.mysales'),'receipt-text','sales'],['stock',t('nav.stock'),'package','stock']]:[['home',t('nav.home'),'house','home'],['sales',t('nav.sales'),'receipt-text','sales'],['checkout',t('nav.sell'),'plus','sell'],['stock',t('nav.stock'),'package','stock'],['customers',t('nav.customers'),'users','customers']];
+ const nav=s.role==='security'?[['gate',t('gate.title'),'shield-check','gate'],['gateshift',t('gate.tab.shift'),'clock','shift'],['profile',t('gate.tab.me'),'user','me']]:isStaff?[['sales',t('nav.mysales'),'receipt-text','sales'],['checkout',t('nav.sell'),'plus','sell'],['stock',t('nav.stock'),'package','stock']]:[['home',t('nav.home'),'house','home'],['sales',t('nav.sales'),'receipt-text','sales'],['checkout',t('nav.sell'),'plus','sell'],['stock',t('nav.stock'),'package','stock'],['customers',t('nav.customers'),'users','customers']];
  const cur=id=>route===id||id==='gateshift'&&route==='clockconfirm'&&s.role==='security'||id==='profile'&&route==='about'&&s.role==='security'||id==='home'&&(route==='phones'||route==='lock')||id==='sales'&&(route==='clock'||route==='notes'||route==='clockconfirm')&&isStaff||id==='home'&&route==='notes'&&!isStaff||id==='home'&&route==='closeday'&&!isStaff||id==='stock'&&state.stockTools&&STOCK_ROUTES.includes(route)||state.salesTools&&(id==='sales'&&(route==='sale'||(route==='closeday'&&isStaff)||route==='receipt'||route==='return'||route==='return-decide')||id==='customers'&&route==='customer');
  const navigation=`<nav class="owner-bottom-nav" data-tabs="${nav.length}" aria-label="${esc(t('nav.label'))}"><span class="rail-mark" aria-hidden="true">${wordmark('Fiyesi','f-wordmark')}</span>${nav.map(([id,label,glyph,kind])=>`<button type="button" class="owner-nav-item${cur(id)?' current':''}${kind==='sell'?' owner-nav-sell':''}" data-route="${id}"${kind==='sell'&&!isStaff?` aria-label="${esc(t('nav.makeSale'))}"`:''} ${cur(id)?'aria-current="page"':''}>${kind==='sell'?`<i class="till-btn" aria-hidden="true">${icon('plus',26,'bold')}</i>`:tabIcon(kind)||icon(glyph,24,cur(id)?'fill':'bold')}<span>${label}</span>${id==='gateshift'&&toConfirm(s).length?'<i class="tab-dot" aria-hidden="true"></i>':''}</button>`).join('')}</nav>`;
  const saveLine=state.salesTools?statusSheet(state):'';
@@ -12652,6 +13484,7 @@ function renderStagingRaw(state){
  if(state.salesTools&&route==='about')content=aboutScreen(state);
  if(state.salesTools&&route==='plan'&&s.role==='owner')content=planScreen(state);
  if(state.salesTools&&RETURN_ROUTES.includes(route))content=returnRoutes(state);
+ if(route==='check-collection'&&s.role==='owner')content=checkCollectionScreen(state,{field});
  if(['add-product','add-customer','collect'].includes(route)&&s.role==='owner'){
   const draft=state.formDraft||{};const input=(label,name,extra='')=>`${field(label,name,'text',extra+` value="${esc(draft[name]||'')}"`)}`;
   const submit=label=>`<div class="kb-bar in-scroll"><button type="submit" class="f-main-button" ${busy?'disabled':''}><span>${label}</span><span class="f-action-icon">${icon('arrow-right')}</span></button></div>`;
@@ -12661,15 +13494,7 @@ function renderStagingRaw(state){
   else if(route==='add-product')content+=`<form id="create-product" class="field-stack">${input(t('ui.product-name'),'name','required maxlength="160"')}${input(t('ui.selling-unit'),'unit','required maxlength="32" placeholder="piece, bottle, bag…"')}${input(t('ui.selling-price'),'price','required inputmode="decimal"')}${input(t('ui.buying-cost-optional'),'cost','inputmode="decimal"')}${input(t('ui.stock-count-optional'),'stock','inputmode="numeric"')}<p class="quiet-copy">${t('ui.leave-uncounted-stock-or-an-unknown-0382')}</p>${submit(t('ui.save-product'))}</form>`;
   if(route==='add-customer')content+=`<form id="create-customer" class="field-stack">${input(t('ui.customer-name'),'name','required maxlength="80"')}${input(t('ui.phone-optional'),'phone','inputmode="tel" maxlength="16"')}<p class="quiet-copy">${t('ui.a-customer-does-not-need-an-owing-ba-6166')}</p>${submit(t('ui.save-customer'))}</form>`;
   if(route==='collect'){const sale=s.sales.find(x=>x.id===state.reviewSaleId),plan=collectPlan(state);content+=`${sale?saleCard(sale):''}<div class="collect-owing-summary"><small>${t('ui.owing')}</small><strong>${money(plan.balanceKobo)}</strong></div><form id="collect-owing" class="field-stack"><label for="collect-amount">${t('ui.cash-given')}</label><input class="text-field cash-given" id="collect-amount" name="amount" required inputmode="decimal" autocomplete="off" maxlength="12" value="${esc(plan.raw)}"><div id="collect-feedback">${collectFeedback(state)}</div>${input(t('ui.note-optional'),'reason','maxlength="300" placeholder="'+esc(t('ph.cash'))+'"')}<label class="local-policy"><input type="checkbox" name="received" required> ${t('ui.i-have-the-cash-in-hand')}</label><p class="quiet-copy">${t('ui.transfer-and-pos-payments-toward-an-f39c')}</p>${submit(t('ui.save-collection'))}</form>`;}
-  if(route==='collect'&&state.salesTools){const sale=s.sales.find(x=>x.id===state.reviewSaleId);if(sale){
-   const plan=collectPlan(state),cust=s.customers.find(c=>c.id===sale.customerId),nm=cust?.name||t('till.customer'),ini=nm.split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase(),paid=Math.max(0,sale.totalKobo-plan.balanceKobo),pct=sale.totalKobo?Math.round(paid*100/sale.totalKobo):0,half=Math.max(100,Math.round(plan.balanceKobo/200)*100);
-   content=`<div class="staging-back-row"><button class="staging-back" data-route="sale" aria-label="${t('ui.back-to-the-sale')}">${icon('arrow-left')}</button><h1>${t('ui.collect-payment')}</h1></div>
-   <div class="cust-hero"><span class="avatar owe big" aria-hidden="true">${esc(ini)}</span><div><strong class="cust-name">${esc(nm)}</strong><small>${t('col.saleof',{amount:money(sale.totalKobo)})}</small></div></div>
-   <div class="owe-hero"><div><small>${t('ui.still-owing')}</small><strong>${money(plan.balanceKobo)}</strong></div><div class="owe-meter"><div class="margin-bar" role="img" aria-label="${pct}% paid"><i style="width:${Math.max(pct,2)}%"></i></div><small>${money(paid)} of ${money(sale.totalKobo)} paid so far</small></div></div>
-   <form id="collect-owing" class="field-stack"><label for="collect-amount">${t('ui.how-much-cash-did-they-give')}</label><div class="amount-field"><b aria-hidden="true">₦</b><input id="collect-amount" name="amount" required inputmode="decimal" autocomplete="off" maxlength="12" aria-label="${t('ui.cash-given-in-naira')}" value="${esc(plan.raw)}"></div>
-   <div class="stock-chips"><button type="button" class="stock-chip" data-collect-fill="full" aria-pressed="${plan.givenKobo===plan.balanceKobo}">${t('collect.full',{amount:money(plan.balanceKobo)})}</button>${half<plan.balanceKobo?`<button type="button" class="stock-chip" data-collect-fill="half" aria-pressed="${plan.givenKobo===half}">${t('collect.half',{amount:money(half)})}</button>`:''}</div>
-   <div id="collect-feedback">${collectFeedback(state)}</div>${input(t('ui.note-optional'),'reason','maxlength="300" placeholder="'+esc(t('ph.cash'))+'"')}<label class="local-policy"><input type="checkbox" name="received" required> ${t('ui.i-have-the-cash-in-hand')}</label>${submit(t('ui.save-collection'))}
-   <p class="hint-line">${icon('clock',16)}<span>${t('ui.transfer-and-pos-toward-an-owing-bal-6a97')}</span></p></form>`;}}
+  if(route==='collect'&&state.salesTools){const sale=s.sales.find(x=>x.id===state.reviewSaleId);if(sale)content=collectScreen(state,{submit,input});}
  }
  if(route==='conflict'){const row=(state.queue||[]).find(x=>x.payload.eventId===state.conflictEventId);content=`<div class="staging-back-row"><button class="staging-back" data-route="sales" aria-label="${t('ui.back-to-sales')}">${icon('arrow-left')}</button><h1>${t('ui.review-unsent-record')}</h1></div><p>${row?.error==='STALE_REVISION'?t('ui.shop-records-changed-before-this-rec-e9aa'):t('ui.this-record-was-not-accepted-check-t-924f')}</p><p class="quiet-copy">${t('ui.removing-it-stops-delivery-and-keeps-4349')}</p><form id="resolve-conflict" class="field-stack">${field(t('ui.reason-for-removing-this-unsent-record'),'reason','text','required minlength="5" maxlength="300"')}<button class="owner-outline" type="submit" ${busy?'disabled':''}>${t('ui.remove-from-delivery')}</button></form>${secondary(t('ui.refresh-shop-records'),'refresh')}`;}
  if(route==='profile')content=title(t('ui.profile-settings'))+`${state.salesTools&&s.role==='owner'?`<button type="button" class="srow" data-route="rules"><span class="srow-tile ok" aria-hidden="true">${icon('shield-check',22,'fill')}</span><span class="srow-name">${t('ui.shop-rules')}</span><span class="srow-amt" aria-hidden="true">${icon('chevron-right',18)}</span><span class="srow-items">${esc(rulesLabel({attendantsConfirmPayments:false,attendantsApproveReturns:false,...(s.rules||{})}))}</span></button>`:''}<div class="field-stack"><label for="shop-choice">${t('ui.shop')}</label><select id="shop-choice" class="text-field">${state.shops.map(x=>`<option value="${x.shopId}" ${s.shopId===x.shopId?'selected':''}>${esc(x.name)}</option>`).join('')}</select>${languagePicker()}<p>${s.role==='owner'?t('ui.shop-owner'):'Attendant'}</p>${secondary(t('ui.refresh-shop-records'),'refresh')}${secondary(t('ui.unlock-queued-records'),'unlock')}${state.previewMode?secondary('Restart preview','reset-preview'):secondary(t('ui.sign-out'),'signout')}</div>`;
@@ -12732,7 +13557,7 @@ const oweBlock=(sale,s)=>{const who=(s.customers||[]).find(c=>c.id===sale.custom
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const pick=who?'':list.length?`<label class="fold-lab" for="owe-who">${t('pay.owe.who')}</label><select class="text-field" id="owe-who" name="customerId"><option value="">${t('pay.owe.pick')}</option>${list.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select>`:`<p class="hint-line">${t('pay.owe.none')}</p>`;
  return `<h3 class="fold-h">${t('pay.owe.title')}</h3><p class="hint-line">${t('pay.owe.sub')}</p>${pick}${who||list.length?`<button type="submit" name="owing" value="yes" class="owner-outline owe-btn">${esc(who?t('pay.owe.btn',{amount:amt,name:who.name}):t('pay.owe.btn.any',{amount:amt}))}</button>`:''}`;};
-const TASK_ROUTES=new Set(['closeday','review','add-product','edit-product','restock','count','add-paste','add-starter','add-online','remove-product','add-customer','collect','invite']);
+const TASK_ROUTES=new Set(['closeday','review','check-collection','add-product','edit-product','restock','count','add-paste','add-starter','add-online','remove-product','add-customer','collect','invite']);
 function cashFeedback(state){
  const p=cashPlan(state);if(!p.active)return '';
  const err=m=>`<p class="g-err" role="alert"><b aria-hidden="true">!</b><span>${esc(friendly(m))}</span></p>`;
@@ -12790,32 +13615,20 @@ function renderOutcome(state){
   cash:()=>[`${t('ui.cash-received-goods-handed-over')}`,t('o.added',{amount:money(o.totalKobo)})],
   part:()=>[t('o.part',{received:money(o.receivedKobo),owing:money(o.owingKobo),name}),`${t('ui.the-unpaid-amount-is-on-this-custome-b6ae')}`],
   owing:()=>[t('o.owing',{owing:money(o.owingKobo),name}),`${t('ui.the-unpaid-amount-is-on-this-custome-b6ae')}`],
-  collection:()=>[o.remainingKobo>0?t('o.coll.left',{received:money(o.receivedKobo),left:money(o.remainingKobo)}):t('o.coll.clear',{received:money(o.receivedKobo)}),t('o.acct',{name})],
+  collection:()=>o.waitingKobo>0?[o.receivedKobo>0?t('col.o.mix',{received:money(o.receivedKobo),waiting:money(o.waitingKobo)}):t('col.o.wait',{amount:money(o.waitingKobo)}),t('col.o.wait.2')]:[o.remainingKobo>0?t('o.coll.left',{received:money(o.receivedKobo),left:money(o.remainingKobo)}):t('o.coll.clear',{received:money(o.receivedKobo)}),t('o.acct',{name})],
   split:()=>[[t('o.s.recv',{amount:money(o.receivedKobo)}),o.pendingKobo>0?t('o.s.wait',{amount:money(o.pendingKobo)}):'',o.owingKobo>0?t('o.s.owe',{amount:money(o.owingKobo),name}):''].filter(Boolean).join(', ')+'.',o.pendingKobo>0?t('ui.goods-are-held-until-the-waiting-pay-6d7e'):t('ui.goods-handed-over')],
   resolved:()=>o.action==='cancel'?[t('ui.sale-cancelled-goods-stay-in-stock'),o.refundKobo>0?t('o.giveback',{amount:money(o.refundKobo)}):t('ui.nothing-was-received')]:o.action==='owing'?[t('o.toowing',{amount:money(o.paymentAmountKobo),name}),o.released?t('ui.goods-can-be-handed-over-now'):t('ui.goods-are-still-held')]:[t('o.rcv',{amount:money(o.paymentAmountKobo)}),o.released?t('ui.goods-can-be-handed-over-now'):t('o.held',{amount:money(o.pendingKobo)})],
   message:()=>[o.line1,o.line2],
   waiting:()=>[o.role==='owner'?t('ui.waiting-for-you-to-confirm-goods-are-cf4e'):t('ui.waiting-for-the-owner-to-confirm-goo-44ce'),t('o.notyet',{amount:money(o.totalKobo)})]
  }[o.kind]();
  const change=o.changeKobo>0?`<div class="cash-change" role="status"><small>${t('ui.give-back')}</small><strong>${money(o.changeKobo)}</strong></div>`:'';const done=['collection','resolved','message'].includes(o.kind);
- const title={message:o.title,collection:t('ui.collection-saved'),resolved:o.action==='cancel'?t('ui.sale-cancelled'):o.action==='owing'?t('ui.moved-to-owing'):t('ui.payment-confirmed')}[o.kind]||t('ui.sale-saved');
+ const title={message:o.title,collection:o.waitingKobo>0?t('col.title.wait'):t('ui.collection-saved'),resolved:o.action==='cancel'?t('ui.sale-cancelled'):o.action==='owing'?t('ui.moved-to-owing'):t('ui.payment-confirmed')}[o.kind]||t('ui.sale-saved');
  if(state.salesTools&&['cash','part','owing','waiting','split'].includes(o.kind))return savedSheet(state,o,{title,lines,synced});
- return `<div class="outcome-scrim"></div><div class="outcome-sheet" role="dialog" aria-modal="true" aria-labelledby="outcome-title"><div class="outcome-tick${o.kind==='waiting'?' wait':''}">${icon(o.kind==='waiting'?'clock':'check',26,'fill')}</div><h2 id="outcome-title">${{message:o.title,collection:t('ui.collection-saved'),resolved:o.action==='cancel'?t('ui.sale-cancelled'):o.action==='owing'?t('ui.moved-to-owing'):t('ui.payment-confirmed')}[o.kind]||t('ui.sale-saved')}</h2>${change}<p>${lines[0]}</p><p><b>${lines[1]}</b></p><p class="quiet-copy">${synced?t('ui.saved-to-the-shop'):t('ui.saved-on-this-device-it-will-sync-wh-d52e')}</p><button type="button" class="f-main-button" data-action="next-sale"><span>${done?t('ui.done'):t('ui.next-sale')}</span><span class="f-action-icon" aria-hidden="true">${icon('arrow-right',20)}</span></button>${done?'':`<button type="button" class="owner-outline" data-route="sales">${t('ui.see-this-sale')}</button>`}${o.saleId&&!done&&o.kind!=='collection'?`<button type="button" class="owner-outline" data-receipt-open="${esc(o.saleId)}">${icon('share',18)} Share receipt</button>`:''}</div>`;
+ return `<div class="outcome-scrim"></div><div class="outcome-sheet" role="dialog" aria-modal="true" aria-labelledby="outcome-title"><div class="outcome-tick${o.kind==='waiting'||o.waitingKobo>0?' wait':''}">${icon(o.kind==='waiting'||o.waitingKobo>0?'clock':'check',26,'fill')}</div><h2 id="outcome-title">${{message:o.title,collection:o.waitingKobo>0?t('col.title.wait'):t('ui.collection-saved'),resolved:o.action==='cancel'?t('ui.sale-cancelled'):o.action==='owing'?t('ui.moved-to-owing'):t('ui.payment-confirmed')}[o.kind]||t('ui.sale-saved')}</h2>${change}<p>${lines[0]}</p><p><b>${lines[1]}</b></p><p class="quiet-copy">${synced?t('ui.saved-to-the-shop'):t('ui.saved-on-this-device-it-will-sync-wh-d52e')}</p><button type="button" class="f-main-button" data-action="next-sale"><span>${done?t('ui.done'):t('ui.next-sale')}</span><span class="f-action-icon" aria-hidden="true">${icon('arrow-right',20)}</span></button>${done?'':`<button type="button" class="owner-outline" data-route="sales">${t('ui.see-this-sale')}</button>`}${o.saleId&&!done&&o.kind!=='collection'?`<button type="button" class="owner-outline" data-receipt-open="${esc(o.saleId)}">${icon('share',18)} Share receipt</button>`:''}</div>`;
 }
 
 const errBlock=m=>`<p class="g-err" role="alert"><b aria-hidden="true">!</b><span>${esc(friendly(m))}</span></p>`;
-function collectPlan(state){
- const s=state.snapshot,sale=s?.sales.find(x=>x.id===state.reviewSaleId);
- if(!sale)return {error:t('ui.sale-not-found'),balanceKobo:0,raw:''};
- const balanceKobo=sale.outstandingKobo??sale.totalKobo,full=balanceKobo%100===0?String(balanceKobo/100):(balanceKobo/100).toFixed(2),raw=state.collectGiven??full;
- let givenKobo;try{givenKobo=FiyesiDomain.parseNaira(String(raw).trim());}catch(e){return {balanceKobo,raw,error:e.message};}
- if(!(givenKobo>0))return {balanceKobo,raw,error:t('ui.enter-an-amount-above-zero')};
- const appliedKobo=Math.min(givenKobo,balanceKobo);
- return {balanceKobo,raw,givenKobo,appliedKobo,changeKobo:givenKobo-appliedKobo,remainingKobo:balanceKobo-appliedKobo,sale,customer:s.customers.find(c=>c.id===sale.customerId)};
-}
-function collectFeedback(state){
- const p=collectPlan(state);if(p.error)return errBlock(p.error);
- return (p.changeKobo>0?`<div class="cash-change" role="status"><small>${t('ui.give-back')}</small><strong>${money(p.changeKobo)}</strong></div>`:'')+`<p class="cash-owing" role="status">${money(p.appliedKobo)} will be recorded. ${p.remainingKobo>0?`${money(p.remainingKobo)} will still be owing.`:t('ui.this-clears-the-balance')}</p>`;
-}
+
 
 const methodLabel={get cash(){return t('pay.cash');},get transfer(){return t('pay.transfer');},get pos(){return t('pay.pos');}};
 function splitPlan(state){
@@ -12872,7 +13685,7 @@ function tidy(html){
 }
 function renderStaging(state){return tidy(renderStagingRaw(state)+buzzBanner(state));}
 
-__exports.cashFeedback=cashFeedback;__exports.canSaveSale=canSaveSale;__exports.quickItems=quickItems;__exports.saleOutcome=saleOutcome;__exports.saveLineHtml=saveLineHtml;__exports.renderOutcome=renderOutcome;__exports.collectPlan=collectPlan;__exports.collectFeedback=collectFeedback;__exports.splitPlan=splitPlan;__exports.splitFeedback=splitFeedback;__exports.domainSale=domainSale;__exports.tidy=tidy;__exports.renderStaging=renderStaging;__exports.chip=chip;
+__exports.cashPlan=cashPlan;__exports.cashFeedback=cashFeedback;__exports.canSaveSale=canSaveSale;__exports.quickItems=quickItems;__exports.saleOutcome=saleOutcome;__exports.saveLineHtml=saveLineHtml;__exports.renderOutcome=renderOutcome;__exports.splitPlan=splitPlan;__exports.splitFeedback=splitFeedback;__exports.domainSale=domainSale;__exports.tidy=tidy;__exports.renderStaging=renderStaging;__exports.chip=chip;__exports.collectPlan=collectPlan;__exports.collectFeedback=collectFeedback;
 });
 __d("app/staging/privacy.mjs",function(__exports,__r){
 // Hide figures (decision 110): one button that replaces money on reporting screens with a fixed mask, so a customer or a passer-by cannot read it.
@@ -12980,7 +13793,7 @@ function mountStaging({root,auth,reader,createController,now=()=>new Date().toIS
  const feel=createFeel({win:root.ownerDocument?.defaultView||globalThis,doc:root.ownerDocument,storage:(()=>{try{return globalThis.localStorage;}catch{return null;}})()});
  const TEXT_SCALES={normal:1,large:1.12,xl:1.25};let textSize='normal';try{textSize=globalThis.localStorage?.getItem('fiyesi-text')||'normal';}catch{}if(!TEXT_SCALES[textSize])textSize='normal';
  const state={seenIntros:loadSeen(),me:loadMe(),hideFigures:loadHidden(),textSize,scan:{status:'idle'},online:true,feel:feel.prefs,setup:{step:1},lastSaleId:null,personId:null,activityFilter:'all',profitPeriod:'today',sellStep:'items',returnDraft:freshDraft(),returnId:null,salesTools,salesFilter:{q:'',chip:'all'},custFilter:{q:'',chip:'all'},saleId:null,saleFrom:'sales',customerDetailId:null,stockTools,stockFilter:{q:'',chip:'all'},productId:null,starterType:'Provisions',starterPicks:{},countGiven:undefined,splitPayments,splitRows:[],resolve:null,auth:{...freshAuth(),...(authStep?{step:authStep}:{})},previewMode,snapshot:null,route:'home',shops:[],cart:{},paymentMethod:'cash',cashGiven:'',outcome:null,customerId:'',queue:[],busy:false,error:'',notice:'',owingOnly:false,reviewSaleId:null,formDraft:{},conflictEventId:null,signedIn:false,shopRequestId:null,customerFilter:null,productQuery:'',customerQuery:'',customerEditorOpen:false,customerDraft:{name:'',phone:''},pendingCheckoutCustomer:null};
- let epoch=0,controller=null,deviceId=null,counterTimer=null;const routes=new Set(['home','sales','stock','profit','customers','profile','checkout','review','add-product','add-customer','collect','conflict','sale','customer','activity','team','person','person-remove','invite','shop-details','remove-product','return','return-decide','rules','product','restock','count','edit-product','add-ways','add-paste','add-starter','add-online','receipt','account','about','plan','closeday','phones','lock','shopcode','clock','clockmethod','fixclock','clockconfirm','gate','gateflags','shift','notes','gateshift']);
+ let epoch=0,controller=null,deviceId=null,counterTimer=null,cartTimer=null;const routes=new Set(['home','sales','stock','profit','customers','profile','checkout','review','add-product','add-customer','collect','check-collection','conflict','sale','customer','activity','team','person','person-remove','invite','shop-details','remove-product','return','return-decide','rules','product','restock','count','edit-product','add-ways','add-paste','add-starter','add-online','receipt','account','about','plan','closeday','phones','lock','shopcode','clock','clockmethod','fixclock','clockconfirm','gate','gateflags','shift','notes','gateshift']);
  let lastErr='',stream=null,scanTimer=null;
  // Buzz: tell the right person once, ring again a couple of times if nobody has opened it, then stop.
  const told=new Set(),watch=new Map();let ringTimer=null,againTimer=null;
@@ -13158,7 +13971,7 @@ function mountStaging({root,auth,reader,createController,now=()=>new Date().toIS
   catch(error){if(version===epoch)safeFailure(error);}finally{if(version===epoch){state.busy=false;render();}}
  }
  const canConfirm=()=>{const sl=state.snapshot?.sales.find(x=>x.id===state.reviewSaleId);return canConfirmPayment(state.snapshot?.role,state.snapshot?.rules,sl?.totalKobo);};
- function navigate(route){if(state.snapshot&&routes.has(route)&&needsPin(route,state.lock.cfg,state.lock.unlockedUntil,nowMs(),state.snapshot.role)&&state.route!==route){state.lock.mode='ask';state.lock.pending=route;state.lock.entry='';state.lock.error='';render();return;}if(!state.snapshot||!routes.has(route)||(state.snapshot.role!=='owner'&&['home','profit','customers','customer','add-product','add-customer','collect','restock','count','edit-product','add-ways','add-paste','add-starter','add-online','rules','activity','remove-product','team','person','person-remove','invite','shop-details','plan','account','phones','lock','shopcode','clockmethod','fixclock','shift'].includes(route)||route==='clock'&&state.snapshot.role!=='attendant'||route==='gateshift'&&state.snapshot.role!=='security'))return;if(route==='review'&&!canConfirm())return;if(route==='return-decide'&&state.snapshot.role!=='owner'&&!state.snapshot.rules?.attendantsApproveReturns)return;if(state.route==='clock'&&route!=='clock'){stopCamera();state.clockScan=null;}if(route==='clockmethod'&&state.route!=='clockmethod')state.methodDraft=null;if(state.route!==route)state.formDraft={};if(route!=='count')state.countGiven=undefined;if(route==='closeday'&&state.route!=='closeday')state.closeDraft={step:'count'};if(route!=='checkout'){state.sellStep='items';state.productQuery='';state.customerQuery='';state.customerEditorOpen=false;state.customerDraft={name:'',phone:''};}if(route!=='sales')state.customerFilter=null;state.route=route;state.error='';state.notice='';if(route==='notes')setTimeout(()=>{const sn=state.snapshot;if(!sn||state.route!=='notes')return;const ids=unreadFor(sn.notes,sn.userId).map(x=>x.id);if(!ids.length)return;void queueEvent({shopId:sn.shopId,eventId:randomId(),deviceId,entityId:sn.shopId,occurredAt:now(),baseRevision:sn.shopRevision,operation:'notes-seen',data:{ids,userId:sn.userId,name:(sn.userName||'').trim()||(sn.role==='owner'?'Owner':'Attendant')}},'notes',null);},2500);render(true,route==='checkout'&&!state.salesTools?'#product-search':'');}
+ function navigate(route){if(state.snapshot&&routes.has(route)&&needsPin(route,state.lock.cfg,state.lock.unlockedUntil,nowMs(),state.snapshot.role)&&state.route!==route){state.lock.mode='ask';state.lock.pending=route;state.lock.entry='';state.lock.error='';render();return;}if(!state.snapshot||!routes.has(route)||(state.snapshot.role!=='owner'&&['home','profit','customers','customer','add-product','add-customer','collect','check-collection','restock','count','edit-product','add-ways','add-paste','add-starter','add-online','rules','activity','remove-product','team','person','person-remove','invite','shop-details','plan','account','phones','lock','shopcode','clockmethod','fixclock','shift'].includes(route)||route==='clock'&&state.snapshot.role!=='attendant'||route==='gateshift'&&state.snapshot.role!=='security'))return;if(route==='review'&&!canConfirm())return;if(route==='return-decide'&&state.snapshot.role!=='owner'&&!state.snapshot.rules?.attendantsApproveReturns)return;if(state.route==='clock'&&route!=='clock'){stopCamera();state.clockScan=null;}if(route==='clockmethod'&&state.route!=='clockmethod')state.methodDraft=null;if(state.route!==route)state.formDraft={};if(route!=='count')state.countGiven=undefined;if(route==='closeday'&&state.route!=='closeday')state.closeDraft={step:'count'};if(route!=='checkout'){state.sellStep='items';state.productQuery='';state.customerQuery='';state.customerEditorOpen=false;state.customerDraft={name:'',phone:''};}if(route!=='sales')state.customerFilter=null;state.route=route;state.error='';state.notice='';if(route==='notes')setTimeout(()=>{const sn=state.snapshot;if(!sn||state.route!=='notes')return;const ids=unreadFor(sn.notes,sn.userId).map(x=>x.id);if(!ids.length)return;void queueEvent({shopId:sn.shopId,eventId:randomId(),deviceId,entityId:sn.shopId,occurredAt:now(),baseRevision:sn.shopRevision,operation:'notes-seen',data:{ids,userId:sn.userId,name:(sn.userName||'').trim()||(sn.role==='owner'?'Owner':'Attendant')}},'notes',null);},2500);render(true,route==='checkout'&&!state.salesTools?'#product-search':'');}
  async function refresh(){const version=epoch,id=state.snapshot?.shopId;if(!id)return;let snapshot;try{snapshot=await reader.snapshot(id);}catch(error){if(version===epoch&&/Shop access denied|Verified session/.test(error.message)){clear();}throw error;}check(version);state.snapshot=snapshot;state.lastSyncAt=Date.now();if(snapshot.role!=='owner'&&['profit','home','customers'].includes(state.route))state.route='checkout';checkBuzz();render();}
  async function sync(){const version=epoch;if(!controller||!state.snapshot)throw Error('Connect to unlock queued records');await controller.flush();check(version);const rows=await controller.list();check(version);state.queue=rows;const pending=state.queue.filter(r=>!['synced','discarded locally'].includes(r.status));state.notice=pending.length?(pending.some(r=>['needs review','rejected'].includes(r.status))?tr('ui.needs-review-the-original-event-is-k-138f'):tr('ui.saved-on-this-device-waiting-to-sync')):tr('save.saved');await refresh();}
 
@@ -13280,6 +14093,14 @@ async function createProducts(rows,source){
    state.returnDraft=freshDraft();
   }catch(error){if(version===epoch)safeFailure(error);}finally{if(version===epoch){state.busy=false;render();}}
  }
+ // A waiting collection checked: it landed, or it did not (165). The server checks who may confirm.
+ async function checkCollection(action,reason){
+  const s=state.snapshot,c=(s?.collections||[]).find(x=>x.id===state.collectionId);if(state.busy||s?.role!=='owner'||!c)return;
+  if(action==='not-received'&&String(reason).trim().length<3){state.error=tr('col.err.reason');render();return;}
+  const version=epoch,who=s.customers.find(x=>x.id===c.customerId)?.name||'',amt=FiyesiDomain.formatKobo(c.amountKobo),ok=action==='received';state.busy=true;state.error='';render();
+  try{const eventId=randomId();await queueEvent({shopId:s.shopId,eventId,deviceId,entityId:c.id,occurredAt:now(),baseRevision:s.shopRevision,operation:'check-collection',data:{action,...(action==='not-received'?{reason:String(reason).trim().slice(0,300)}:{}),...(s.userName?{byName:String(s.userName).slice(0,60)}:{})}},state.collectionFrom||'sales',{kind:'message',eventId,title:ok?tr('col.o.checked.t'):tr('col.o.not.t'),line1:tr(ok?'col.o.checked':'col.o.not',{amount:amt,name:who}),line2:ok?tr('col.o.checked.2'):tr('col.o.not.2')});}
+  catch(error){if(version===epoch)safeFailure(error);}finally{if(version===epoch){state.busy=false;render();}}
+ }
  async function teamOp(operation,data,destination,outcome=null){
   const s=state.snapshot;if(state.busy||s?.role!=='owner')return;
   const version=epoch;state.busy=true;state.error='';render();
@@ -13336,12 +14157,14 @@ async function createProducts(rows,source){
    }else if(kind==='create-customer'){
     const name=String(raw.name||'').trim(),phone=String(raw.phone||'').trim();if(!name||name.length>80||phone&&!/^\+?[0-9]{7,15}$/.test(phone))throw Error('Add a name and check the optional phone number');data={name,phone:phone||null};destination='customers';
    }else if(kind==='collect-owing'){
-    const sale=state.snapshot.sales.find(x=>x.id===state.reviewSaleId),reason=String(raw.reason||'').trim()||'Cash collected';
-    if(!sale||raw.received!=='on'||reason.length<5||reason.length>300)throw Error('Confirm the cash is in hand and check the note');
-    const given=amount(raw.amount);if(!(given>0))throw Error('Enter an amount above zero');
-    const balance=sale.outstandingKobo??sale.totalKobo,applied=Math.min(given,balance);
-    data={amountKobo:applied,reason};entityId=sale.id;destination='customers';
-    outcome={kind:'collection',role:'owner',saleId:sale.id,eventId,customerName:state.snapshot.customers.find(c=>c.id===sale.customerId)?.name||'',receivedKobo:applied,changeKobo:given-applied,remainingKobo:balance-applied,totalKobo:applied};
+    // 165: cash, transfer, POS or split. Transfer and POS are saved waiting; cash needs the cash-in-hand tick.
+    if(raw.amount!==undefined&&(state.collectMethod||'cash')!=='split')state.collectGiven=String(raw.amount).replace(/[,\s₦]/g,'');
+    const pl=collectPlan(state),sale=pl.sale,reason=String(raw.reason||'').trim().slice(0,300);
+    if(!sale)throw Error('Sale not found');if(pl.error||!pl.ok)throw Error(pl.error||'Enter an amount above zero');
+    if(pl.receivedKobo>0&&raw.received!=='on')throw Error(tr('col.err.cash'));
+    // Cash alone keeps the shape every server already takes; transfer, POS and split send the payments (165).
+    data=pl.waitingKobo>0?{payments:pl.payments,note:reason||'Collected, waiting to be checked',...(state.snapshot.userName?{byName:String(state.snapshot.userName).slice(0,60)}:{})}:{amountKobo:pl.receivedKobo,reason:reason.length>=5?reason:reason?`Cash collected: ${reason}`.slice(0,300):'Cash collected'};entityId=sale.id;destination='customers';
+    outcome={kind:'collection',role:'owner',saleId:sale.id,eventId,customerName:pl.customer?.name||'',receivedKobo:pl.receivedKobo,waitingKobo:pl.waitingKobo,changeKobo:pl.changeKobo,remainingKobo:pl.owedKobo-pl.receivedKobo,totalKobo:pl.receivedKobo+pl.waitingKobo};
    }else throw Error('Unknown operation');
    await queueEvent({shopId:state.snapshot.shopId,eventId,deviceId,entityId,occurredAt:now(),baseRevision:state.snapshot.shopRevision,operation:kind,data},destination,outcome);
   }catch(error){if(version===epoch)safeFailure(error);}finally{if(version===epoch){state.busy=false;render();}}
@@ -13475,6 +14298,8 @@ async function createProducts(rows,source){
   if(button.dataset.meClear!==undefined){state.me=null;saveMe(null);feel.fire('soft');render();return;}
   if(button.dataset.hideFigures!==undefined){state.hideFigures=!state.hideFigures;saveHidden(state.hideFigures);feel.fire('soft');feel.toast(tr(state.hideFigures?'priv.toast.on':'priv.toast.off'));render();return;}
   if(button.dataset?.counterUndo){void undoCounter();return;}
+  if(button.dataset?.cartClear){state.cartUndo={cart:{...state.cart},at:Date.now()};state.cart={};state.ticketOpen=false;clearTimeout(cartTimer);cartTimer=setTimeout(()=>{state.cartUndo=null;render(false);},UNDO_MS);feel.fire('soft');render(false);return;}
+  if(button.dataset?.cartUndo){const u=state.cartUndo;if(u&&!Object.keys(state.cart).length){state.cart=u.cart;}state.cartUndo=null;clearTimeout(cartTimer);render(false);return;}
   if(button.dataset?.counterToggle){if(state.snapshot?.role!=='owner')return;const on=button.getAttribute('aria-checked')!=='true';void teamOp('set-module',{module:'counter',on},'rules');return;}
   if(button.dataset.introHow){const key=button.dataset.introHow;state.intro={key,mode:'how',on:Boolean(state.snapshot?.modules?.[key]),back:state.route};state.route='intro';render(true);return;}
   if(button.dataset.introOn){const key=button.dataset.introOn,back=state.intro?.back||'team';markSeen(key);state.seenIntros=loadSeen();state.intro=null;state.route=back;void teamOp('set-module',{module:key,on:true},back);return;}
@@ -13485,7 +14310,12 @@ async function createProducts(rows,source){
   if(button.dataset.phoneAsk!==undefined){state.phoneOut=button.dataset.phoneAsk||null;render();return;}
   if(button.dataset.phoneConfirm){const id=button.dataset.phoneConfirm,all=id==='all',d=(state.snapshot.devices||[]).find(x=>x.id===id);if(!all&&!d)return;state.phoneOut=null;void teamOp('sign-out-device',all?{all:true}:{deviceId:id},'phones',{kind:'message',title:tr('phones.done'),line1:all?tr('phones.done.all'):tr('phones.done.named',{name:d.name}),line2:tr('phones.done.safe')});return;}
   if(button.dataset.profitPeriod){state.profitPeriod=button.dataset.profitPeriod==='week'?'week':'today';render();return;}
-  if(button.dataset.collectFill){const sl=state.snapshot.sales.find(x=>x.id===state.reviewSaleId),bal=sl?(sl.outstandingKobo??sl.totalKobo):0,k=button.dataset.collectFill==='half'?Math.max(100,Math.round(bal/200)*100):bal;state.collectGiven=k%100===0?String(k/100):(k/100).toFixed(2);render();return;}
+  if(button.dataset.collectMethod){const m=button.dataset.collectMethod;state.collectMethod=m;state.collectGiven=undefined;if(m==='split'&&!(state.collectRows||[]).length)state.collectRows=[{method:'cash',amount:''},{method:'transfer',amount:''}];render();return;}
+  if(button.dataset.colSplitAdd){state.collectRows=[...(state.collectRows||[]),{method:button.dataset.colSplitAdd,amount:''}];render();return;}
+  if(button.dataset.colSplitRemove!==undefined){state.collectRows=(state.collectRows||[]).filter((_,i)=>i!==Number(button.dataset.colSplitRemove));render();return;}
+  if(button.dataset.checkCol){state.collectionId=button.dataset.checkCol;state.collectionFrom=state.route;navigate('check-collection');return;}
+  if(button.dataset.checkCollection==='received'){void checkCollection('received','');return;}
+  if(button.dataset.collectFill){const bal=collectPlan(state).openKobo||0,k=button.dataset.collectFill==='half'?Math.max(100,Math.round(bal/200)*100):bal;state.collectGiven=k%100===0?String(k/100):(k/100).toFixed(2);render();return;}
   if(button.dataset.sellStep){state.sellStep=button.dataset.sellStep==='review'?'review':'items';render(true);return;}
   if(button.dataset.returnNew){state.saleId=button.dataset.returnNew;state.returnDraft=freshDraft();navigate('return');return;}
   if(button.dataset.retStep){const [pid,dl]=button.dataset.retStep.split('|'),sale=state.snapshot.sales.find(x=>x.id===state.saleId),l=sale&&returnable(sale,state.snapshot.returns||[]).find(x=>x.key===pid),d=state.returnDraft||freshDraft();if(l)state.returnDraft={...d,qty:{...d.qty,[pid]:Math.max(0,Math.min(l.max,(Number(d.qty[pid])||0)+Number(dl)))}};render();return;}
@@ -13510,7 +14340,7 @@ async function createProducts(rows,source){
   if(button.dataset.resolveChoice){state.resolve={...state.resolve,choice:button.dataset.resolveChoice};render();return;}
   if(button.dataset.resolveBack!==undefined){state.resolve=null;render();return;}
   if(button.dataset.resolveGo){void resolvePayment();return;}
-  if(button.dataset.collect){state.reviewSaleId=button.dataset.collect;state.saleId=button.dataset.collect;state.collectGiven=undefined;navigate('collect');return;}
+  if(button.dataset.collect){state.reviewSaleId=button.dataset.collect;state.saleId=button.dataset.collect;state.collectGiven=undefined;state.collectMethod='cash';state.collectRows=[];navigate('collect');return;}
   if(button.dataset.review){state.reviewSaleId=button.dataset.review;state.saleId=button.dataset.review;navigate('review');return;}
   if(button.dataset.filter){state.owingOnly=button.dataset.filter==='owing';render();return;}
   if(button.dataset.payment){if(!([...(state.snapshot.role==='owner'?['cash','transfer','pos','owing']:['cash','transfer','pos']),...(state.splitPayments?['split']:[])]).includes(button.dataset.payment))return;state.paymentMethod=button.dataset.payment;state.cashGiven='';state.splitRows=button.dataset.payment==='split'?[{method:'cash',amount:''}]:[];render();return;}
@@ -13548,6 +14378,7 @@ async function createProducts(rows,source){
   if(t.id==='acct-number'||t.id==='setup-shop'||t.id==='setup-owner')root.querySelector('.g-err')?.remove();
   if(t.id==='acct-number'){t.value=groupNumber(t.value);state.formDraft={...state.formDraft,number:digits(t.value)};livePay();return;}
   if(t.name==='accName'){state.formDraft={...state.formDraft,accName:t.value};return;}
+  if(t.dataset?.colSplit!==undefined){const i=Number(t.dataset.colSplit),rows=[...(state.collectRows||[])];if(rows[i])rows[i]={...rows[i],amount:String(t.value).replace(/[,\s₦]/g,'')};state.collectRows=rows;const f=root.querySelector('#collect-feedback');if(f)f.innerHTML=collectFeedback(state);return;}
   if(t.name==='amount'&&t.form?.id==='collect-owing'){state.collectGiven=String(t.value).replace(/[,\s₦]/g,'');const f=root.querySelector('#collect-feedback');if(f)f.innerHTML=collectFeedback(state);const pl=collectPlan(state),half=Math.max(100,Math.round(pl.balanceKobo/200)*100);root.querySelectorAll('[data-collect-fill]').forEach(b=>b.setAttribute('aria-pressed',String(pl.givenKobo===(b.dataset.collectFill==='full'?pl.balanceKobo:half))));return;}
   if(/^split-\d+$/.test(t.id||'')){const i=Number(t.id.slice(6));if(state.splitRows?.[i]){state.splitRows[i].amount=String(t.value).replace(/[,\s₦]/g,'');const f=root.querySelector('#split-feedback');if(f)f.innerHTML=splitFeedback(state);const sb=root.querySelector('[data-action="save-sale"]');if(sb)sb.disabled=!canSaveSale(state);}return;}
   if(t.name==='name'&&state.route==='add-product'&&state.stockTools){const h=root.querySelector('#name-hint');if(h)h.innerHTML=nameHint(String(t.value),state.snapshot.products);return;}
@@ -13615,7 +14446,7 @@ if(form.id==='paste-products'){void createProducts(parsePasteList(form.elements?
    if(needsReason(cmp.state)&&!reason){state.error=tr('cash.pick');render();return;}
    state.error='';const eventId=randomId(),streak=closeStreak(s.closings||[],day)+1;
    void queueEvent({shopId:s.shopId,eventId,deviceId,entityId:eventId,occurredAt:now(),baseRevision:s.shopRevision,operation:'close-day',data:{day,cashSalesKobo:e.cashSalesKobo,collectedKobo:e.collectedKobo,refundsKobo:e.refundsKobo,paidOutKobo:e.paidOutKobo,expectedKobo:e.expectedKobo,countedKobo:counted,diffKobo:cmp.diffKobo,state:cmp.state,reason,note}},'closeday',{kind:'message',closed:true,title:tr('cash.closed.word')+'.',line1:resultLine(cmp.state,cmp.diffKobo)+'.',line2:streak>1?streakText(streak)+'.':tr('cash.streak.first'),eventId});return;}
-  if(form.id==='auth-phone-form'){void sendCode('sms');return;}if(form.id==='auth-code-form'){void verifyCode();return;}const data=new FormData(form);if(form.id==='checkout-create-customer')void createCheckoutCustomer(Object.fromEntries(data));if(form.id==='create-shop')void createShop(String(data.get('name')||''));if(form.id==='signin'){const password=String(data.get('password')||'');form.querySelector('[name=password]').value='';void signIn({email:String(data.get('email')||''),password});}if(['create-product','create-customer','collect-owing'].includes(form.id))void operation(form.id,Object.fromEntries(data));if(form.id==='resolve-conflict')void discard(String(data.get('reason')||''));if(form.id==='review-payment')void review({action:event.submitter?.name==='cancel'?'cancel':event.submitter?.name==='owing'?'owing':'confirm',customerId:String(data.get('customerId')||''),reason:String(data.get('reason')||data.get('why')||''),evidenceChecked:data.get('checked')==='on'});};
+  if(form.id==='auth-phone-form'){void sendCode('sms');return;}if(form.id==='auth-code-form'){void verifyCode();return;}const data=new FormData(form);if(form.id==='checkout-create-customer')void createCheckoutCustomer(Object.fromEntries(data));if(form.id==='create-shop')void createShop(String(data.get('name')||''));if(form.id==='signin'){const password=String(data.get('password')||'');form.querySelector('[name=password]').value='';void signIn({email:String(data.get('email')||''),password});}if(['create-product','create-customer','collect-owing'].includes(form.id))void operation(form.id,Object.fromEntries(data));if(form.id==='collection-not-received'){void checkCollection('not-received',String(data.get('reason')||''));return;}if(form.id==='resolve-conflict')void discard(String(data.get('reason')||''));if(form.id==='review-payment')void review({action:event.submitter?.name==='cancel'?'cancel':event.submitter?.name==='owing'?'owing':'confirm',customerId:String(data.get('customerId')||''),reason:String(data.get('reason')||data.get('why')||''),evidenceChecked:data.get('checked')==='on'});};
  // Connection changes (decision 114): re-draw at once, and say "Back online" once when the phone comes out of offline.
  const mode=()=>connection({online:globalThis.navigator?.onLine!==false,queue:state.queue||[],effectiveType:globalThis.navigator?.connection?.effectiveType||''});
  let lastMode=mode().mode;
