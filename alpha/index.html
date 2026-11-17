@@ -1,1 +1,10 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"><meta name="theme-color" content="#FAF0DE"><title>Fiyesi</title><meta name="description" content="Know how your shop is doing."><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./ui/favicon-32.png" sizes="32x32"><link rel="apple-touch-icon" href="./ui/apple-touch-icon.png"><link rel="stylesheet" href="./fiyesi.css"><script src="./packages/domain/core.js" defer></script><script src="./ui/icons.js" defer></script><script src="./fiyesi.js" defer></script><script>if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));</script></head><body><main class="phone-frame staging-frame" id="staging-app" aria-label="Fiyesi"></main></body></html>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex"><title>Fiyesi has moved</title>
+<meta http-equiv="refresh" content="0; url=https://alpha.fiyesi.com/"><link rel="canonical" href="https://alpha.fiyesi.com/">
+<style>:root{color-scheme:light}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#FAF0DE;color:#342820;font:600 18px/1.4 system-ui,sans-serif;text-align:center;padding:24px}a{color:#342820}</style>
+<script>
+// pilot.fiyesi.com is retired (owner, 17 Nov). Clear what the old pilot kept on this phone, then go to the new address.
+(async()=>{try{for(const r of await navigator.serviceWorker?.getRegistrations?.()||[])await r.unregister();for(const k of await caches?.keys?.()||[])await caches.delete(k);}catch{}location.replace('https://alpha.fiyesi.com/'+location.hash);})();
+</script></head>
+<body><p>Fiyesi has moved to <a href="https://alpha.fiyesi.com/">alpha.fiyesi.com/</a></p></body></html>

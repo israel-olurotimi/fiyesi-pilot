@@ -1,7 +1,8 @@
-# Fiyesi pilot
+# pilot.fiyesi.com (retired 17 Nov 2026)
 
-The page for the first real-shop test. Records stay on the phone that opens it. Nothing is sent anywhere.
+The pilot is retired. Every page here sends people to the new addresses and clears what the old pilot kept on the phone:
+- pilot.fiyesi.com and pilot.fiyesi.com/alpha go to https://alpha.fiyesi.com/
+- pilot.fiyesi.com/prototype goes to https://alpha.fiyesi.com/prototype/
 
-- `/` the pilot: an empty shop kept on the phone.
-- `/alpha/` the alpha app: the real backend (Fiyesi Alpha), phone sign-in, works offline.
-- `/prototype/` the show shop: a filled sample shop with Owner, Attendant and Security, no phone code, nothing saved.
+The last pilot build is kept in this repository's history, at the tag `last-pilot-app` (commit 37b3c70).
+The source of everything (today's app in `app/`, the React app in `web/`) is in `israel-olurotimi/fiyesi`.
